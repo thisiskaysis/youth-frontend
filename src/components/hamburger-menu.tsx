@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -9,11 +10,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ExternalLink } from "./external-link";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
 
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { navigationApi } from "@/lib/api/endpoints";
+import type { NavigationItem } from "@/lib/api/types";
 
 const PANEL_WIDTH = Math.min(300, Dimensions.get("window").width * 0.8);
 
@@ -31,6 +35,12 @@ export function HamburgerButton() {
   const theme = useTheme();
   const [visible, setVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const customNav = useQuery({
+    queryKey: ["navigation", "resolved"],
+    queryFn: navigationApi.list,
+  });
+  const customItems =
+    customNav.data?.results.filter((item) => item.status === "PUBLISHED") ?? [];
 
   const open = () => {
     setVisible(true);
@@ -52,6 +62,11 @@ export function HamburgerButton() {
   const goTo = (href: (typeof MENU_ITEMS)[number]["href"]) => {
     close();
     router.push(href);
+  };
+
+  const goToInternal = (screenKey: string) => {
+    close();
+    router.push(`/${screenKey}` as never);
   };
 
   return (
@@ -113,10 +128,69 @@ export function HamburgerButton() {
                 </ThemedText>
               </Pressable>
             ))}
+
+            {customItems.length > 0 && (
+              <ThemedText
+                type="eyebrow"
+                themeColor="accent"
+                style={styles.panelTitle}
+              >
+                MORE
+              </ThemedText>
+            )}
+            {customItems.map((item) => (
+              <CustomNavRow
+                key={item.id}
+                item={item}
+                onInternalPress={goToInternal}
+              />
+            ))}
           </SafeAreaView>
         </Animated.View>
       </Modal>
     </>
+  );
+}
+
+function CustomNavRow({
+  item,
+  onInternalPress,
+}: {
+  item: NavigationItem;
+  onInternalPress: (screenKey: string) => void;
+}) {
+  if (item.destination_type === "EXTERNAL_URL") {
+    return (
+      <ExternalLink
+        href={item.destination_value as `${string}://${string}`}
+        asChild
+      >
+        <Pressable style={styles.item}>
+          <ThemedText type="smallBold">{item.label}</ThemedText>
+        </Pressable>
+      </ExternalLink>
+    );
+  }
+
+  if (item.destination_type === "INTERNAL_SCREEN") {
+    return (
+      <Pressable
+        onPress={() => onInternalPress(item.destination_value)}
+        style={styles.item}
+      >
+        <ThemedText type="smallBold">{item.label}</ThemedText>
+      </Pressable>
+    );
+  }
+
+  // EVENT/CONTENT/GROUP/FORM destinations need dedicated detail routes that
+  // don't exist yet - show the label but make it inert rather than crash.
+  return (
+    <ThemedView style={styles.item}>
+      <ThemedText type="smallBold" themeColor="textSecondary">
+        {item.label}
+      </ThemedText>
+    </ThemedView>
   );
 }
 

@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AsyncState } from "@/components/async-state";
 import { HamburgerButton } from "@/components/hamburger-menu";
+import { LinkifiedText } from "@/components/linkified-text";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
@@ -160,8 +161,10 @@ export default function HomeScreen() {
               ) : null}
 
               <ThemedView style={styles.postBody}>
-                <ThemedText type="smallBold">{post.title}</ThemedText>
-                <ThemedText style={styles.postText}>{post.body}</ThemedText>
+                <ThemedText type="smallBold" style={styles.postTitle}>
+                  {post.title}
+                </ThemedText>
+                <LinkifiedText text={post.body} style={styles.postText} />
               </ThemedView>
             </ThemedView>
           ))}
@@ -230,7 +233,8 @@ const styles = StyleSheet.create({
   },
   postAvatar: { width: 36, height: 36, borderRadius: 18 },
   postHeaderText: { flex: 1 },
-  postImage: { width: "100%", aspectRatio: 16 / 10 },
+  postImage: { width: "100%", aspectRatio: 1 },
   postBody: { padding: Spacing.three, paddingTop: Spacing.two, gap: 4 },
+  postTitle: { fontSize: 16 },
   postText: { lineHeight: 22 },
 });

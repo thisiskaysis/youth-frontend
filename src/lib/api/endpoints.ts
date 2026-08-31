@@ -11,6 +11,7 @@ import type {
     EventItem,
     FollowUp,
     FormAssignment,
+    FormDefinition,
     Group,
     InboxMessage,
     NavigationItem,
@@ -20,6 +21,8 @@ import type {
     RideRequest,
     SignInResult,
     SignOutResult,
+    VolunteerAssignment,
+    VolunteerPosition,
 } from "./types";
 
 // Users
@@ -161,13 +164,17 @@ export const ridesApi = {
       .get<Paginated<RideRequest>>("/api/rides/requests/")
       .then((r) => r.data),
   create: (payload: {
-    direction: "TO" | "HOME";
+    direction: "TO_CHURCH" | "HOME" | "BOTH";
     area: string;
     requested_date?: string;
     notes?: string;
   }) =>
     apiClient
       .post<RideRequest>("/api/rides/requests/", payload)
+      .then((r) => r.data),
+  updateStatus: (id: number, status: RideRequest["status"]) =>
+    apiClient
+      .patch<RideRequest>(`/api/rides/requests/${id}/`, { status })
       .then((r) => r.data),
 };
 
@@ -179,7 +186,17 @@ export const formsApi = {
       .then((r) => r.data),
   definitions: () =>
     apiClient
-      .get<Paginated<{ id: number; title: string }>>("/api/forms/definitions/")
+      .get<Paginated<FormDefinition>>("/api/forms/definitions/")
+      .then((r) => r.data),
+  createDefinition: (payload: { title: string; description?: string }) =>
+    apiClient
+      .post<FormDefinition>("/api/forms/definitions/", payload)
+      .then((r) => r.data),
+  assign: (formId: number, personIds: number[], dueAt?: string) =>
+    apiClient
+      .post<
+        FormAssignment[]
+      >(`/api/forms/definitions/${formId}/assign/`, { person_ids: personIds, due_at: dueAt })
       .then((r) => r.data),
 };
 
@@ -190,6 +207,19 @@ export const decisionsApi = {
   followUps: () =>
     apiClient
       .get<Paginated<FollowUp>>("/api/decisions/follow-ups/")
+      .then((r) => r.data),
+  create: (payload: {
+    person: number;
+    decision_type: string;
+    occurred_at: string;
+    notes?: string;
+  }) =>
+    apiClient.post<Decision>("/api/decisions/", payload).then((r) => r.data),
+  updateFollowUpStatus: (followUpId: number, status: FollowUp["status"]) =>
+    apiClient
+      .post<FollowUp>(`/api/decisions/follow-ups/${followUpId}/status/`, {
+        status,
+      })
       .then((r) => r.data),
 };
 
@@ -243,13 +273,36 @@ export const navigationApi = {
 export const volunteersApi = {
   assignments: () =>
     apiClient
+      .get<Paginated<VolunteerAssignment>>("/api/volunteers/assignments/")
+      .then((r) => r.data),
+  positions: (groupId?: number) =>
+    apiClient
       .get<
-        Paginated<{
-          id: number;
-          status: string;
-          position: { id: number; name: string };
-        }>
-      >("/api/volunteers/assignments/")
+        Paginated<VolunteerPosition>
+      >("/api/volunteers/positions/", { params: groupId ? { group: groupId } : undefined })
+      .then((r) => r.data),
+  createPosition: (payload: { group: number; name: string }) =>
+    apiClient
+      .post<VolunteerPosition>("/api/volunteers/positions/", payload)
+      .then((r) => r.data),
+  respond: (
+    id: number,
+    accept: boolean,
+    declineReason = "",
+    declineNote = "",
+  ) =>
+    apiClient
+      .post<VolunteerAssignment>(`/api/volunteers/assignments/${id}/respond/`, {
+        accept,
+        decline_reason: declineReason,
+        decline_note: declineNote,
+      })
+      .then((r) => r.data),
+  cancel: (id: number, reason = "") =>
+    apiClient
+      .post<VolunteerAssignment>(`/api/volunteers/assignments/${id}/cancel/`, {
+        reason,
+      })
       .then((r) => r.data),
   availability: () =>
     apiClient.get("/api/volunteers/availability/").then((r) => r.data),

@@ -128,18 +128,27 @@ export type InboxMessage = {
 export type RideRequest = {
   id: number;
   person: BasicPerson;
-  direction: "TO" | "HOME";
+  direction: "TO_CHURCH" | "HOME" | "BOTH";
   area: string;
   status: "REQUESTED" | "ARRANGING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
   requested_date: string | null;
   notes: string;
 };
 
+export type FormDefinition = {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+};
+
 export type FormAssignment = {
   id: number;
-  form: { id: number; title: string };
+  form: number;
+  form_title: string;
   person: BasicPerson;
   due_at: string | null;
+  status: "OUTSTANDING" | "SUBMITTED";
   submission: unknown | null;
 };
 
@@ -175,6 +184,33 @@ export type FollowUp = {
   assignee: BasicPerson;
   status: "OUTSTANDING" | "IN_PROGRESS" | "COMPLETED";
   due_at: string | null;
+};
+
+export type VolunteerPosition = {
+  id: number;
+  group: number;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+};
+
+export type VolunteerAssignment = {
+  id: number;
+  roster: number;
+  group: number;
+  position: number;
+  position_name: string;
+  person: BasicPerson;
+  status:
+    | "DRAFT"
+    | "PENDING"
+    | "ACCEPTED"
+    | "DECLINED"
+    | "CANCELLED"
+    | "COMPLETED";
+  call_start: string | null;
+  call_end: string | null;
+  notes: string;
 };
 
 export type DashboardData = {
