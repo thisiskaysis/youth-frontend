@@ -44,6 +44,17 @@ export const groupsApi = {
 export const eventsApi = {
   list: () =>
     apiClient.get<Paginated<EventItem>>("/api/events/").then((r) => r.data),
+  create: (payload: {
+    name: string;
+    starts_at: string;
+    ends_at?: string;
+    location?: string;
+    description?: string;
+  }) => apiClient.post<EventItem>("/api/events/", payload).then((r) => r.data),
+  publish: (id: number, notify = false) =>
+    apiClient
+      .post<EventItem>(`/api/events/${id}/publish/`, { notify })
+      .then((r) => r.data),
 };
 
 // Attendance
@@ -194,6 +205,12 @@ export const reportingApi = {
 export const contentApi = {
   list: () =>
     apiClient.get<Paginated<ContentItem>>("/api/content/").then((r) => r.data),
+  create: (payload: { title: string; body: string; image?: string }) =>
+    apiClient.post<ContentItem>("/api/content/", payload).then((r) => r.data),
+  publish: (id: number) =>
+    apiClient
+      .post<ContentItem>(`/api/content/${id}/publish/`)
+      .then((r) => r.data),
 };
 
 // Dynamic navigation (CMS)
@@ -201,6 +218,24 @@ export const navigationApi = {
   list: () =>
     apiClient
       .get<Paginated<NavigationItem>>("/api/navigation/")
+      .then((r) => r.data),
+  create: (payload: {
+    label: string;
+    destination_type: string;
+    destination_value: string;
+  }) =>
+    apiClient
+      .post<NavigationItem>("/api/navigation/", payload)
+      .then((r) => r.data),
+  publish: (id: number) =>
+    apiClient
+      .post<NavigationItem>(`/api/navigation/${id}/publish/`)
+      .then((r) => r.data),
+  reorder: (orderedIds: number[]) =>
+    apiClient
+      .patch<
+        NavigationItem[]
+      >("/api/navigation/reorder/", { ordered_ids: orderedIds })
       .then((r) => r.data),
 };
 
