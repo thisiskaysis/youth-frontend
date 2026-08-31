@@ -1,5 +1,9 @@
 import { apiClient } from "../api-client";
 import type {
+    AttendanceLiveStats,
+    AttendanceRecord,
+    AttendanceSession,
+    BasicPerson,
     ContentItem,
     CurrentUser,
     DashboardData,
@@ -14,6 +18,8 @@ import type {
     Paginated,
     PrayerRequest,
     RideRequest,
+    SignInResult,
+    SignOutResult,
 } from "./types";
 
 // Users
@@ -21,7 +27,9 @@ export const usersApi = {
   me: () => apiClient.get<CurrentUser>("/api/users/me/").then((r) => r.data),
   search: (query: string) =>
     apiClient
-      .get<CurrentUser[]>("/api/users/search/", { params: { q: query } })
+      .get<
+        Paginated<BasicPerson>
+      >("/api/users/search/", { params: { q: query } })
       .then((r) => r.data),
 };
 
@@ -39,24 +47,53 @@ export const eventsApi = {
 };
 
 // Attendance
+type SignPayload = {
+  qr_token?: string;
+  person_id?: number;
+  source?: "QR" | "MANUAL";
+};
+
 export const attendanceApi = {
   sessions: () =>
     apiClient
-      .get<
-        Paginated<{
-          id: number;
-          event: number;
-          status: "OPEN" | "CLOSED";
-        }>
-      >("/api/attendance/sessions/")
+      .get<Paginated<AttendanceSession>>("/api/attendance/sessions/")
+      .then((r) => r.data),
+  session: (sessionId: number) =>
+    apiClient
+      .get<AttendanceSession>(`/api/attendance/sessions/${sessionId}/`)
+      .then((r) => r.data),
+  openSession: (eventId: number) =>
+    apiClient
+      .post<AttendanceSession>("/api/attendance/sessions/", { event: eventId })
       .then((r) => r.data),
   live: (sessionId: number) =>
     apiClient
-      .get(`/api/attendance/sessions/${sessionId}/live/`)
+      .get<AttendanceLiveStats>(`/api/attendance/sessions/${sessionId}/live/`)
       .then((r) => r.data),
   onSite: (sessionId: number) =>
     apiClient
-      .get(`/api/attendance/sessions/${sessionId}/on-site/`)
+      .get<AttendanceRecord[]>(`/api/attendance/sessions/${sessionId}/on-site/`)
+      .then((r) => r.data),
+  signIn: (sessionId: number, payload: SignPayload) =>
+    apiClient
+      .post<SignInResult>(
+        `/api/attendance/sessions/${sessionId}/sign-in/`,
+        payload,
+      )
+      .then((r) => r.data),
+  signOut: (sessionId: number, payload: SignPayload) =>
+    apiClient
+      .post<SignOutResult>(
+        `/api/attendance/sessions/${sessionId}/sign-out/`,
+        payload,
+      )
+      .then((r) => r.data),
+  close: (sessionId: number, force = false, reason = "") =>
+    apiClient
+      .post<AttendanceSession>(`/api/attendance/sessions/${sessionId}/close/`, {
+        force,
+        reason,
+      })
       .then((r) => r.data),
 };
 

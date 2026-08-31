@@ -38,6 +38,51 @@ export type Group = {
   description?: string;
 };
 
+export type AttendanceSession = {
+  id: number;
+  event: number;
+  status: "OPEN" | "CLOSED";
+  opened_at: string;
+  closed_at: string | null;
+};
+
+export type AttendanceRecord = {
+  id: number;
+  session: number;
+  person: BasicPerson;
+  signed_in_at: string | null;
+  sign_in_source: "QR" | "MANUAL" | "";
+  signed_out_at: string | null;
+  sign_out_source: "QR" | "MANUAL" | "";
+};
+
+export type AttendanceLiveStats = {
+  session_id: number;
+  status: "OPEN" | "CLOSED";
+  currently_on_site: number;
+  total_signed_in: number;
+  signed_out: number;
+  first_time_visitors: number;
+};
+
+export type SignInResult = {
+  result: "SIGNED_IN" | "ALREADY_SIGNED_IN";
+  person: BasicPerson;
+  record: AttendanceRecord;
+};
+
+export type SignOutResult = {
+  result: "SIGNED_OUT";
+  person: BasicPerson;
+  record: AttendanceRecord;
+};
+
+export type AttendanceApiError = {
+  code: string;
+  detail: string;
+  people?: BasicPerson[];
+};
+
 export type EventItem = {
   id: number;
   name: string;

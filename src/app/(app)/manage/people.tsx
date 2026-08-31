@@ -48,17 +48,14 @@ export default function ManagePeopleScreen() {
         isError={searchQuery.isError}
         errorMessage="Couldn't search people."
         onRetry={() => searchQuery.refetch()}
-        isEmpty={query.length > 0 && searchQuery.data?.length === 0}
+        isEmpty={query.length > 0 && searchQuery.data?.results.length === 0}
         emptyMessage="No matches."
       />
 
-      {searchQuery.data?.map((person) => (
+      {searchQuery.data?.results.map((person) => (
         <Card key={person.id} style={styles.card}>
           <ThemedText type="smallBold">
             {person.first_name} {person.last_name}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {person.email ?? person.username} · {person.role}
           </ThemedText>
         </Card>
       ))}
