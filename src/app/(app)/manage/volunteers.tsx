@@ -16,7 +16,12 @@ import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { extractErrorMessage } from "@/lib/api-client";
-import { groupsApi, volunteersApi } from "@/lib/api/endpoints";
+import {
+    eventsApi,
+    groupsApi,
+    usersApi,
+    volunteersApi,
+} from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth-context";
 
 export default function ManageVolunteersScreen() {
@@ -26,7 +31,7 @@ export default function ManageVolunteersScreen() {
 
   const assignmentsQuery = useQuery({
     queryKey: ["manage", "volunteers", "assignments"],
-    queryFn: volunteersApi.assignments,
+    queryFn: () => volunteersApi.assignments(),
   });
   const positionsQuery = useQuery({
     queryKey: ["manage", "volunteers", "positions"],
@@ -76,6 +81,104 @@ export default function ManageVolunteersScreen() {
     mutationFn: (id: number) => volunteersApi.cancel(id),
     onSuccess: invalidate,
   });
+
+  const [rosterOpen, setRosterOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [selectedPositionId, setSelectedPositionId] = useState<number | null>(
+    null,
+  );
+  const [personQuery, setPersonQuery] = useState("");
+  const [rosterNotes, setRosterNotes] = useState("");
+  const [rosterError, setRosterError] = useState<string | null>(null);
+  const [notInTeamPersonId, setNotInTeamPersonId] = useState<number | null>(
+    null,
+  );
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+
+  const eventsQuery = useQuery({
+    queryKey: ["manage", "volunteers", "events"],
+    queryFn: eventsApi.list,
+    enabled: rosterOpen,
+  });
+  const personResults = useQuery({
+    queryKey: ["manage", "volunteers", "person-search", personQuery],
+    queryFn: () => usersApi.search(personQuery),
+    enabled: personQuery.length > 0,
+  });
+  const rosterAssignmentsQuery = useQuery({
+    queryKey: ["manage", "volunteers", "roster", selectedEventId],
+    queryFn: () => volunteersApi.assignments(selectedEventId ?? undefined),
+    enabled: selectedEventId != null,
+  });
+
+  const resetRosterForm = () => {
+    setSelectedPositionId(null);
+    setPersonQuery("");
+    setRosterNotes("");
+    setNotInTeamPersonId(null);
+    setRosterError(null);
+  };
+
+  const createAssignmentMutation = useMutation({
+    mutationFn: ({
+      personId,
+      addToGroup,
+    }: {
+      personId: number;
+      addToGroup?: boolean;
+    }) => {
+      if (!selectedEventId || !selectedPositionId) {
+        throw new Error("Choose an event and a position first.");
+      }
+      return volunteersApi.createAssignment({
+        event: selectedEventId,
+        position: selectedPositionId,
+        person: personId,
+        notes: rosterNotes,
+        add_to_group: addToGroup,
+      });
+    },
+    onSuccess: (result) => {
+      resetRosterForm();
+      setRosterError(null);
+      setNotInTeamPersonId(null);
+      setConflictWarning(
+        result.conflicts.length > 0
+          ? `Heads up: this person has ${result.conflicts.length} other assignment(s) around the same time.`
+          : null,
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["manage", "volunteers", "roster", selectedEventId],
+      });
+    },
+    onError: (error, variables) => {
+      const data = (
+        error as { response?: { data?: { code?: string; detail?: string } } }
+      ).response?.data;
+      if (data?.code === "NOT_IN_TEAM") {
+        setNotInTeamPersonId(variables.personId);
+      }
+      setRosterError(data?.detail ?? extractErrorMessage(error));
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedEventId) throw new Error("Choose an event first.");
+      return volunteersApi.publish(selectedEventId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["manage", "volunteers", "roster", selectedEventId],
+      });
+      invalidate();
+    },
+    onError: (error) => setRosterError(extractErrorMessage(error)),
+  });
+
+  const draftCount =
+    rosterAssignmentsQuery.data?.results.filter((a) => a.status === "DRAFT")
+      .length ?? 0;
 
   return (
     <ScreenContainer>
@@ -160,6 +263,183 @@ export default function ManageVolunteersScreen() {
               </ThemedText>
             )}
           </Pressable>
+        </Card>
+      )}
+
+      <Pressable
+        onPress={() => setRosterOpen((open) => !open)}
+        style={[styles.newButton, { backgroundColor: theme.accent }]}
+      >
+        <ThemedText type="buttonLabel" themeColor="accentText">
+          {rosterOpen ? "CANCEL" : "+ BUILD ROSTER"}
+        </ThemedText>
+      </Pressable>
+
+      {rosterOpen && (
+        <Card>
+          <ThemedText type="small" style={styles.label}>
+            Event
+          </ThemedText>
+          <AsyncState
+            isLoading={eventsQuery.isLoading}
+            isError={eventsQuery.isError}
+            errorMessage="Couldn't load events."
+          />
+          <ThemedView style={styles.chipRow}>
+            {eventsQuery.data?.results.map((event) => (
+              <Pressable
+                key={event.id}
+                onPress={() => {
+                  setSelectedEventId(event.id);
+                  resetRosterForm();
+                  setConflictWarning(null);
+                }}
+              >
+                <ThemedView
+                  type={
+                    selectedEventId === event.id
+                      ? "backgroundSelected"
+                      : "backgroundElement"
+                  }
+                  style={styles.chip}
+                >
+                  <ThemedText
+                    type="small"
+                    themeColor={
+                      selectedEventId === event.id ? "accent" : "textSecondary"
+                    }
+                  >
+                    {event.name}
+                  </ThemedText>
+                </ThemedView>
+              </Pressable>
+            ))}
+          </ThemedView>
+
+          {selectedEventId && (
+            <>
+              <ThemedText type="small" style={styles.label}>
+                Position
+              </ThemedText>
+              <ThemedView style={styles.chipRow}>
+                {positionsQuery.data?.results.map((position) => (
+                  <Pressable
+                    key={position.id}
+                    onPress={() => setSelectedPositionId(position.id)}
+                  >
+                    <ThemedView
+                      type={
+                        selectedPositionId === position.id
+                          ? "backgroundSelected"
+                          : "backgroundElement"
+                      }
+                      style={styles.chip}
+                    >
+                      <ThemedText
+                        type="small"
+                        themeColor={
+                          selectedPositionId === position.id
+                            ? "accent"
+                            : "textSecondary"
+                        }
+                      >
+                        {position.name}
+                      </ThemedText>
+                    </ThemedView>
+                  </Pressable>
+                ))}
+              </ThemedView>
+
+              <ThemedText type="small" style={styles.label}>
+                Person
+              </ThemedText>
+              <TextInput
+                value={personQuery}
+                onChangeText={setPersonQuery}
+                placeholder="Search by name"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    color: theme.text,
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.border,
+                  },
+                ]}
+              />
+              {personResults.data?.results.map((person) => (
+                <ThemedView key={person.id} style={styles.searchRow}>
+                  <ThemedText type="small">{person.display_name}</ThemedText>
+                  <Pressable
+                    disabled={
+                      !selectedPositionId || createAssignmentMutation.isPending
+                    }
+                    onPress={() =>
+                      createAssignmentMutation.mutate({ personId: person.id })
+                    }
+                  >
+                    <ThemedText type="link" themeColor="accent">
+                      Add to roster
+                    </ThemedText>
+                  </Pressable>
+                </ThemedView>
+              ))}
+
+              {rosterError && (
+                <ThemedText type="small" themeColor="danger">
+                  {rosterError}
+                </ThemedText>
+              )}
+              {notInTeamPersonId && (
+                <Pressable
+                  disabled={createAssignmentMutation.isPending}
+                  onPress={() =>
+                    createAssignmentMutation.mutate({
+                      personId: notInTeamPersonId,
+                      addToGroup: true,
+                    })
+                  }
+                >
+                  <ThemedText type="link" themeColor="accent">
+                    Add them to the team & assign anyway
+                  </ThemedText>
+                </Pressable>
+              )}
+              {conflictWarning && (
+                <ThemedText type="small" themeColor="danger">
+                  {conflictWarning}
+                </ThemedText>
+              )}
+
+              <ThemedText
+                type="small"
+                themeColor="textSecondary"
+                style={styles.label}
+              >
+                {draftCount} draft assignment{draftCount === 1 ? "" : "s"} for
+                this event
+              </ThemedText>
+              <Pressable
+                disabled={draftCount === 0 || publishMutation.isPending}
+                onPress={() => publishMutation.mutate()}
+                style={[
+                  styles.submitButton,
+                  {
+                    backgroundColor: theme.accent,
+                    opacity: draftCount === 0 ? 0.5 : 1,
+                  },
+                ]}
+              >
+                {publishMutation.isPending ? (
+                  <ActivityIndicator color={theme.accentText} />
+                ) : (
+                  <ThemedText type="buttonLabel" themeColor="accentText">
+                    PUBLISH ROSTER
+                  </ThemedText>
+                )}
+              </Pressable>
+            </>
+          )}
         </Card>
       )}
 
@@ -291,5 +571,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     marginTop: Spacing.three,
+  },
+  searchRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Spacing.one,
   },
 });

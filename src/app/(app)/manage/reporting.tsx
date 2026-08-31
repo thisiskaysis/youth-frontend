@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { StyleSheet } from "react-native";
+import { Link } from "expo-router";
+import { Pressable, StyleSheet } from "react-native";
 
 import { AsyncState } from "@/components/async-state";
 import { Card } from "@/components/card";
@@ -8,6 +9,17 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { reportingApi } from "@/lib/api/endpoints";
+
+const DRILLDOWNS = [
+  { slug: "attendance-trend", label: "Attendance trend" },
+  { slug: "attendance", label: "Attendance log" },
+  { slug: "first-time-visitors", label: "First-time visitors" },
+  { slug: "unassigned-youth", label: "Unassigned youth" },
+  { slug: "decisions", label: "Decisions" },
+  { slug: "outstanding-followups", label: "Outstanding follow-ups" },
+  { slug: "outstanding-consent", label: "Outstanding consent" },
+  { slug: "rides", label: "Rides" },
+] as const;
 
 export default function ManageReportingScreen() {
   const query = useQuery({
@@ -52,6 +64,23 @@ export default function ManageReportingScreen() {
           />
         </ThemedView>
       )}
+
+      <ThemedText type="subtitle" style={styles.sectionSpacing}>
+        Drilldowns
+      </ThemedText>
+      {DRILLDOWNS.map((drilldown) => (
+        <Link
+          key={drilldown.slug}
+          href={`/manage/reporting/${drilldown.slug}`}
+          asChild
+        >
+          <Pressable>
+            <Card style={styles.card}>
+              <ThemedText type="smallBold">{drilldown.label}</ThemedText>
+            </Card>
+          </Pressable>
+        </Link>
+      ))}
     </ScreenContainer>
   );
 }
@@ -72,4 +101,6 @@ function Metric({ label, value }: { label: string; value: number }) {
 const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
   metricCard: { width: "48%", alignItems: "center" },
+  sectionSpacing: { marginTop: Spacing.three },
+  card: { marginTop: Spacing.one },
 });

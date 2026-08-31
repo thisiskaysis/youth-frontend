@@ -7,6 +7,7 @@ export default function AppLayout() {
       <Stack.Screen name="groups" options={{ title: "Groups" }} />
       <Stack.Screen name="events" options={{ title: "Events" }} />
       <Stack.Screen name="inbox" options={{ title: "Inbox" }} />
+      <Stack.Screen name="forms" options={{ title: "Forms" }} />
       <Stack.Screen
         name="manage/attendance"
         options={{ title: "Attendance" }}
@@ -25,6 +26,8 @@ export default function AppLayout() {
         name="manage/volunteers"
         options={{ title: "Volunteers" }}
       />
+      <Stack.Screen name="manage/prayer" options={{ title: "Prayer" }} />
+      <Stack.Screen name="manage/groups" options={{ title: "Groups" }} />
     </Stack>
   );
 }

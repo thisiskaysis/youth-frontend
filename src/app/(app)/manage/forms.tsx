@@ -10,12 +10,17 @@ import {
 import { AsyncState } from "@/components/async-state";
 import { Card } from "@/components/card";
 import { ScreenContainer } from "@/components/screen-container";
+import { StatusBadge } from "@/components/status-badge";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { extractErrorMessage } from "@/lib/api-client";
 import { formsApi, usersApi } from "@/lib/api/endpoints";
+import type { FormField } from "@/lib/api/types";
+
+const FIELD_TYPES: FormField["type"][] = ["text", "textarea", "checkbox"];
+let nextFieldId = 0;
 
 export default function ManageFormsScreen() {
   const theme = useTheme();
@@ -32,7 +37,24 @@ export default function ManageFormsScreen() {
   const [formOpen, setFormOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [fields, setFields] = useState<(FormField & { key: string })[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const addField = () => {
+    nextFieldId += 1;
+    setFields((current) => [
+      ...current,
+      { key: `field_${nextFieldId}`, label: "", type: "text", required: false },
+    ]);
+  };
+  const updateField = (index: number, patch: Partial<FormField>) => {
+    setFields((current) =>
+      current.map((field, i) => (i === index ? { ...field, ...patch } : field)),
+    );
+  };
+  const removeField = (index: number) => {
+    setFields((current) => current.filter((_, i) => i !== index));
+  };
 
   const [assigningFormId, setAssigningFormId] = useState<number | null>(null);
   const [assignQuery, setAssignQuery] = useState("");
@@ -43,10 +65,21 @@ export default function ManageFormsScreen() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => formsApi.createDefinition({ title, description }),
+    mutationFn: () =>
+      formsApi.createDefinition({
+        title,
+        description,
+        schema: fields.map(({ key, label, type, required }) => ({
+          key,
+          label,
+          type,
+          required,
+        })),
+      }),
     onSuccess: () => {
       setTitle("");
       setDescription("");
+      setFields([]);
       setFormOpen(false);
       setFormError(null);
       queryClient.invalidateQueries({
@@ -54,6 +87,14 @@ export default function ManageFormsScreen() {
       });
     },
     onError: (error) => setFormError(extractErrorMessage(error)),
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: (id: number) => formsApi.updateDefinitionStatus(id, "ACTIVE"),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["manage", "forms", "definitions"],
+      }),
   });
 
   const assignMutation = useMutation({
@@ -117,6 +158,86 @@ export default function ManageFormsScreen() {
               },
             ]}
           />
+
+          <ThemedView style={styles.row}>
+            <ThemedText type="small" style={styles.label}>
+              Questions
+            </ThemedText>
+            <Pressable onPress={addField}>
+              <ThemedText type="link" themeColor="accent">
+                + Add question
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
+          {fields.length === 0 && (
+            <ThemedText type="small" themeColor="textSecondary">
+              No questions yet - the form will just be a plain acknowledgement.
+            </ThemedText>
+          )}
+          {fields.map((field, index) => (
+            <ThemedView key={index} style={styles.fieldRow}>
+              <TextInput
+                value={field.label}
+                onChangeText={(label) => updateField(index, { label })}
+                placeholder="Question label"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    color: theme.text,
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.border,
+                  },
+                ]}
+              />
+              <ThemedView style={styles.fieldRowActions}>
+                <ThemedView style={styles.typeGrid}>
+                  {FIELD_TYPES.map((type) => (
+                    <Pressable
+                      key={type}
+                      onPress={() => updateField(index, { type })}
+                    >
+                      <ThemedView
+                        type={
+                          field.type === type
+                            ? "backgroundSelected"
+                            : "backgroundElement"
+                        }
+                        style={styles.typeChip}
+                      >
+                        <ThemedText
+                          type="small"
+                          themeColor={
+                            field.type === type ? "accent" : "textSecondary"
+                          }
+                        >
+                          {type}
+                        </ThemedText>
+                      </ThemedView>
+                    </Pressable>
+                  ))}
+                </ThemedView>
+                <Pressable
+                  onPress={() =>
+                    updateField(index, { required: !field.required })
+                  }
+                >
+                  <ThemedText
+                    type="small"
+                    themeColor={field.required ? "accent" : "textSecondary"}
+                  >
+                    {field.required ? "Required" : "Optional"}
+                  </ThemedText>
+                </Pressable>
+                <Pressable onPress={() => removeField(index)}>
+                  <ThemedText type="small" themeColor="danger">
+                    Remove
+                  </ThemedText>
+                </Pressable>
+              </ThemedView>
+            </ThemedView>
+          ))}
+
           {formError && (
             <ThemedText type="small" themeColor="danger">
               {formError}
@@ -153,6 +274,24 @@ export default function ManageFormsScreen() {
         <Card key={form.id} style={styles.card}>
           <ThemedView style={styles.row}>
             <ThemedText type="smallBold">{form.title}</ThemedText>
+            <StatusBadge status={form.status} />
+          </ThemedView>
+          <ThemedText type="small" themeColor="textSecondary">
+            {form.schema.length} question{form.schema.length === 1 ? "" : "s"}
+          </ThemedText>
+          <ThemedView style={styles.row}>
+            {form.status === "DRAFT" ? (
+              <Pressable
+                disabled={activateMutation.isPending}
+                onPress={() => activateMutation.mutate(form.id)}
+              >
+                <ThemedText type="link" themeColor="success">
+                  Activate
+                </ThemedText>
+              </Pressable>
+            ) : (
+              <ThemedView />
+            )}
             <Pressable
               onPress={() =>
                 setAssigningFormId(assigningFormId === form.id ? null : form.id)
@@ -261,5 +400,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: Spacing.one,
+  },
+  fieldRow: { marginTop: Spacing.two, gap: Spacing.one },
+  fieldRowActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: Spacing.two,
+  },
+  typeGrid: { flexDirection: "row", gap: Spacing.one },
+  typeChip: {
+    borderRadius: 999,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 4,
   },
 });

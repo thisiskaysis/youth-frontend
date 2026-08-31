@@ -43,6 +43,16 @@ const LINKS = [
     label: "Volunteers",
     hint: "Roster assignments",
   },
+  {
+    href: "/manage/prayer",
+    label: "Prayer Moderation",
+    hint: "Review & respond",
+  },
+  {
+    href: "/manage/groups",
+    label: "Groups",
+    hint: "Create teams & manage members",
+  },
 ] as const;
 
 export default function DashboardScreen() {

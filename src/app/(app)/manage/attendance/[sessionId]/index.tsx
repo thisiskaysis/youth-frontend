@@ -28,6 +28,9 @@ export default function AttendanceSessionScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [closeError, setCloseError] = useState<AttendanceApiError | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [visitorPanelOpen, setVisitorPanelOpen] = useState(false);
+  const [visitorFirstName, setVisitorFirstName] = useState("");
+  const [visitorLastName, setVisitorLastName] = useState("");
 
   const sessionQuery = useQuery({
     queryKey: ["attendance", id],
@@ -58,6 +61,21 @@ export default function AttendanceSessionScreen() {
       setActionError(null);
       setSearchQuery("");
       invalidateAll();
+    },
+    onError: (error) => setActionError(extractErrorMessage(error)),
+  });
+
+  const createVisitorMutation = useMutation({
+    mutationFn: () =>
+      usersApi.createVisitor({
+        first_name: visitorFirstName,
+        last_name: visitorLastName,
+      }),
+    onSuccess: (person) => {
+      setVisitorPanelOpen(false);
+      setVisitorFirstName("");
+      setVisitorLastName("");
+      signInMutation.mutate(person.id);
     },
     onError: (error) => setActionError(extractErrorMessage(error)),
   });
@@ -152,9 +170,7 @@ export default function AttendanceSessionScreen() {
           />
           {searchResults.data?.results.map((person) => (
             <ThemedView key={person.id} style={styles.searchRow}>
-              <ThemedText type="small">
-                {person.first_name} {person.last_name}
-              </ThemedText>
+              <ThemedText type="small">{person.display_name}</ThemedText>
               <Pressable
                 disabled={signInMutation.isPending}
                 onPress={() => signInMutation.mutate(person.id)}
@@ -169,6 +185,69 @@ export default function AttendanceSessionScreen() {
               </Pressable>
             </ThemedView>
           ))}
+
+          <Pressable onPress={() => setVisitorPanelOpen((open) => !open)}>
+            <ThemedText
+              type="link"
+              themeColor="accent"
+              style={styles.visitorToggle}
+            >
+              {visitorPanelOpen
+                ? "Cancel"
+                : "Can't find them? Add as a visitor"}
+            </ThemedText>
+          </Pressable>
+
+          {visitorPanelOpen && (
+            <ThemedView style={styles.visitorPanel}>
+              <TextInput
+                value={visitorFirstName}
+                onChangeText={setVisitorFirstName}
+                placeholder="First name"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    color: theme.text,
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.border,
+                  },
+                ]}
+              />
+              <TextInput
+                value={visitorLastName}
+                onChangeText={setVisitorLastName}
+                placeholder="Last name (optional)"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    color: theme.text,
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.border,
+                  },
+                ]}
+              />
+              <Pressable
+                disabled={
+                  !visitorFirstName.trim() || createVisitorMutation.isPending
+                }
+                onPress={() => createVisitorMutation.mutate()}
+                style={StyleSheet.flatten([
+                  styles.smallButton,
+                  { backgroundColor: theme.accent, alignSelf: "flex-start" },
+                ])}
+              >
+                {createVisitorMutation.isPending ? (
+                  <ActivityIndicator size="small" color={theme.accentText} />
+                ) : (
+                  <ThemedText type="small" themeColor="accentText">
+                    Add & sign in
+                  </ThemedText>
+                )}
+              </Pressable>
+            </ThemedView>
+          )}
         </Card>
       )}
 
@@ -196,9 +275,7 @@ export default function AttendanceSessionScreen() {
       {onSiteQuery.data?.map((record) => (
         <ThemedView key={record.id} style={styles.onSiteRow}>
           <ThemedView>
-            <ThemedText type="small">
-              {record.person.first_name} {record.person.last_name}
-            </ThemedText>
+            <ThemedText type="small">{record.person.display_name}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               Since{" "}
               {record.signed_in_at
@@ -327,4 +404,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.four,
     paddingVertical: Spacing.two,
   },
+  visitorToggle: { marginTop: Spacing.two },
+  visitorPanel: { marginTop: Spacing.two, gap: Spacing.two },
 });

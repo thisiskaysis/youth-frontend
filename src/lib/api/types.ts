@@ -31,11 +31,50 @@ export type BasicPerson = {
   profile_image: string | null;
 };
 
+export type PersonDetail = {
+  id: number;
+  username: string;
+  email: string | null;
+  first_name: string;
+  last_name: string;
+  profile_image: string | null;
+  role: Role;
+  status: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+  date_of_birth: string | null;
+  school_year: number | null;
+  phone_number: string;
+  guardian_name: string;
+  guardian_phone: string;
+  guardian_email: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  is_provisional: boolean;
+  date_joined: string;
+};
+
 export type Group = {
   id: number;
   name: string;
   group_type: "CONNECT" | "VOLUNTEER" | "MINISTRY";
   description?: string;
+  schedule?: string;
+  location?: string;
+  is_active?: boolean;
+  member_count?: number;
+  leader_count?: number;
+};
+
+export type GroupMembershipEntry = {
+  id: number;
+  group: number;
+  person: BasicPerson;
+  membership_role: "MEMBER" | "LEADER";
+  is_active: boolean;
+  joined_at: string;
+};
+
+export type GroupDetail = Group & {
+  memberships: GroupMembershipEntry[];
 };
 
 export type AttendanceSession = {
@@ -135,21 +174,35 @@ export type RideRequest = {
   notes: string;
 };
 
+export type FormField = {
+  key: string;
+  label: string;
+  type: "text" | "textarea" | "checkbox";
+  required?: boolean;
+};
+
 export type FormDefinition = {
   id: number;
   title: string;
   description: string;
-  status: string;
+  schema: FormField[];
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
 };
 
 export type FormAssignment = {
   id: number;
   form: number;
   form_title: string;
+  form_description: string;
+  form_schema: FormField[];
   person: BasicPerson;
   due_at: string | null;
   status: "OUTSTANDING" | "SUBMITTED";
-  submission: unknown | null;
+  submission: {
+    id: number;
+    answers: Record<string, string | boolean>;
+    created_at: string;
+  } | null;
 };
 
 export type ContentItem = {
@@ -181,9 +234,12 @@ export type Decision = {
 
 export type FollowUp = {
   id: number;
+  decision: number;
   assignee: BasicPerson;
   status: "OUTSTANDING" | "IN_PROGRESS" | "COMPLETED";
   due_at: string | null;
+  completed_at: string | null;
+  notes: string;
 };
 
 export type VolunteerPosition = {
@@ -211,6 +267,11 @@ export type VolunteerAssignment = {
   call_start: string | null;
   call_end: string | null;
   notes: string;
+};
+
+export type AttendanceTrendPoint = {
+  week: string;
+  unique_youth: number;
 };
 
 export type DashboardData = {

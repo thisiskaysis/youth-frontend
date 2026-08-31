@@ -1,56 +1,120 @@
-# Welcome to your Expo app 👋
+# youth-frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Mobile/web app for a church youth ministry, backed by the `youth-backend`
+Django API. Social-feed-style Home screen, QR attendance, and a full set
+of leader/admin management tools behind a Dashboard tab.
 
-## Get started
+Stack: Expo SDK 57 + Expo Router (file-based routing) + TypeScript +
+React 19 + TanStack Query + Axios. NativeTabs on iOS/Android, a custom
+web tab bar on web (see `src/components/app-tabs.tsx` /
+`app-tabs.web.tsx`).
 
-1. Install dependencies
+> Expo changed significantly around SDK 52+. Read the versioned docs at
+> https://docs.expo.dev/versions/v57.0.0/ before making framework-level
+> changes (see `AGENTS.md`).
 
-   ```bash
-   npm install
-   ```
+## Getting started
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+npm install
+npx expo start --web        # web (fastest loop for this project)
+npx expo start --ios        # iOS Simulator (needs the platform downloaded in Xcode)
+npx expo start              # then press i / a / w
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The Django backend must be running separately (`youth-backend/`, default
+`http://localhost:8000`). API base URL resolution lives in
+`src/lib/config.ts` (`localhost:8000` for web/iOS, `10.0.2.2:8000` for
+the Android emulator, override with `EXPO_PUBLIC_API_URL` for a physical
+device on the same network).
 
-### Other setup steps
+```
+npx tsc --noEmit             # typecheck (no test suite yet)
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Project structure
 
-## Learn more
+- `src/app/` - Expo Router routes.
+  - `_layout.tsx` - QueryClientProvider + AuthProvider + auth-gated
+    Protected Routes (`(app)` vs `login`/`register`).
+  - `(app)/(tabs)/` - Home (newsfeed), Prayer, Profile, Dashboard
+    (leader/admin only).
+  - `(app)/` - Groups, Events, Inbox, Forms (youth-facing, all reachable
+    via the hamburger menu, not tabs).
+  - `(app)/manage/` - every leader/admin tool, linked from the Dashboard
+    grid.
+- `src/lib/api/endpoints.ts` + `types.ts` - all backend calls and their
+  response shapes, grouped by domain (`usersApi`, `groupsApi`, ...).
+- `src/lib/auth-context.tsx` - `useAuth()`: user, `isAuthenticated`,
+  `isLeaderOrAdmin`, `isAdmin`, login/register/logout.
+- `src/components/` - shared chrome: `ScreenContainer`, `AsyncState`,
+  `Card`, `StatusBadge`, `ThemedText`/`ThemedView`, `HamburgerButton`.
+- `src/constants/theme.ts` - colour palette + typography, inspired by
+  thesend.org.au.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Implemented
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- **Auth** - login/register against SimpleJWT, auto-refresh on 401,
+  SecureStore on native / localStorage on web.
+- **Home newsfeed** - Instagram-style feed (image, title, body with
+  tappable links) + a horizontal "stories" strip of upcoming events,
+  pull-to-refresh.
+- **Prayer** - public wall, submit a request, "I prayed" toggle, and a
+  full leader **moderation queue** (`/manage/prayer`): approve / hide /
+  escalate pending requests, reply privately (arrives as an Inbox
+  message).
+- **Profile** - own QR code for attendance check-in.
+- **Groups** - youth-facing "My Groups", plus full leader/admin CRUD
+  (`/manage/groups`): create a group, add/remove members, promote/demote
+  a group leader.
+- **Events** - list, leader create + publish.
+- **Newsfeed CMS** (`/manage/content`) - create + publish posts that
+  appear on Home.
+- **Dynamic navigation CMS** (`/manage/navigation`) - create, publish,
+  and reorder custom menu items that render in the hamburger menu
+  (external links, internal screens).
+- **Attendance** - full QR flow: open a session per event, scan sign-in/
+  sign-out (native camera or webcam), manual search sign-in/out, a
+  **walk-in visitor quick-add** for people with no account yet, live
+  on-site stats, close-session with a force-close override.
+- **Forms & consent** (`/manage/forms` + youth-facing `/forms`) - leader
+  builds a form with a question schema (text / textarea / checkbox,
+  required flags), activates it, assigns it to people; assignees see it
+  under "My Forms" and fill in/submit answers.
+- **Decisions & follow-up** (`/manage/decisions`) - record a decision,
+  assign an accountable follow-up to a leader/admin, and cycle its
+  status (outstanding → in progress → completed).
+- **Volunteers** (`/manage/volunteers`) - create positions per team,
+  build a roster (pick an event + position + person, with a
+  not-on-the-team safety check), publish it to notify volunteers, then
+  accept/decline/cancel assignments.
+- **Rides** (`/manage/rides`) - view requests, cycle status
+  (requested → arranging → confirmed → completed), cancel.
+- **Inbox** - read messages/notifications, mark read, and (leader/admin
+  only) **compose** a direct message to any person you're authorised to
+  contact.
+- **People** (`/manage/people`) - search, then open a full profile
+  (contact/guardian/emergency-contact info, role, status) and edit it;
+  role changes are admin-only.
+- **Reporting** (`/manage/reporting`) - KPI dashboard plus drill-down
+  lists: attendance trend, attendance log, first-time visitors,
+  unassigned youth, decisions, outstanding follow-ups, outstanding
+  consent, rides.
 
-## Join the community
+## Not built yet
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Google / Apple sign-in (backend doesn't have it either).
+- Push notification registration (device token → backend) and a
+  notification-preferences screen - backend endpoints exist, unused.
+- Websocket/Channels realtime for the live attendance dashboard - REST
+  polling only.
+- Audience targeting UI (everyone vs. specific groups/school-years) on
+  the Events/Content/Navigation create forms - always defaults to
+  everyone.
+- A real native date/time picker for the Event create form (plain text
+  input parsed as a date string today).
+- Per-event roster summary report (fill/pending/accepted/declined
+  counts) - the other 8 reporting drill-downs are built, this one needs
+  its own event picker.
+- Volunteer position picker in "+ BUILD ROSTER" isn't scoped to the
+  selected event's team yet (shows every position).

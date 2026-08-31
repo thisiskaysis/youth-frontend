@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, TextInput } from "react-native";
+import { Pressable, StyleSheet, TextInput } from "react-native";
 
 import { AsyncState } from "@/components/async-state";
 import { Card } from "@/components/card";
@@ -53,11 +54,13 @@ export default function ManagePeopleScreen() {
       />
 
       {searchQuery.data?.results.map((person) => (
-        <Card key={person.id} style={styles.card}>
-          <ThemedText type="smallBold">
-            {person.first_name} {person.last_name}
-          </ThemedText>
-        </Card>
+        <Link key={person.id} href={`/manage/people/${person.id}`} asChild>
+          <Pressable>
+            <Card style={styles.card}>
+              <ThemedText type="smallBold">{person.display_name}</ThemedText>
+            </Card>
+          </Pressable>
+        </Link>
       ))}
     </ScreenContainer>
   );

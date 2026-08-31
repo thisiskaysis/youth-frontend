@@ -62,7 +62,7 @@ export default function AttendanceScanScreen() {
     action.mutate(scan.data, {
       onSuccess: (data) => {
         const person = data.person as BasicPerson;
-        const name = `${person.first_name} ${person.last_name}`.trim();
+        const name = person.display_name;
         if ("result" in data && data.result === "ALREADY_SIGNED_IN") {
           showOutcome({
             tone: "warning",

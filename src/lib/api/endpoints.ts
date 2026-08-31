@@ -3,6 +3,7 @@ import type {
     AttendanceLiveStats,
     AttendanceRecord,
     AttendanceSession,
+    AttendanceTrendPoint,
     BasicPerson,
     ContentItem,
     CurrentUser,
@@ -12,11 +13,15 @@ import type {
     FollowUp,
     FormAssignment,
     FormDefinition,
+    FormField,
     Group,
+    GroupDetail,
+    GroupMembershipEntry,
     InboxMessage,
     NavigationItem,
     NotificationItem,
     Paginated,
+    PersonDetail,
     PrayerRequest,
     RideRequest,
     SignInResult,
@@ -34,6 +39,21 @@ export const usersApi = {
         Paginated<BasicPerson>
       >("/api/users/search/", { params: { q: query } })
       .then((r) => r.data),
+  createVisitor: (payload: {
+    first_name: string;
+    last_name?: string;
+    date_of_birth?: string;
+    school_year?: number;
+  }) =>
+    apiClient
+      .post<BasicPerson>("/api/users/visitors/", payload)
+      .then((r) => r.data),
+  detail: (id: number) =>
+    apiClient.get<PersonDetail>(`/api/users/${id}/`).then((r) => r.data),
+  update: (id: number, payload: Partial<PersonDetail>) =>
+    apiClient
+      .put<PersonDetail>(`/api/users/${id}/`, payload)
+      .then((r) => r.data),
 };
 
 // Groups
@@ -41,6 +61,41 @@ export const groupsApi = {
   mine: () => apiClient.get<Group[]>("/api/groups/mine/").then((r) => r.data),
   list: () =>
     apiClient.get<Paginated<Group>>("/api/groups/").then((r) => r.data),
+  detail: (id: number) =>
+    apiClient.get<GroupDetail>(`/api/groups/${id}/`).then((r) => r.data),
+  create: (payload: {
+    name: string;
+    group_type: Group["group_type"];
+    description?: string;
+    schedule?: string;
+    location?: string;
+  }) => apiClient.post<Group>("/api/groups/", payload).then((r) => r.data),
+  addMember: (
+    groupId: number,
+    personId: number,
+    membershipRole: GroupMembershipEntry["membership_role"] = "MEMBER",
+  ) =>
+    apiClient
+      .post<GroupMembershipEntry>("/api/groups/memberships/", {
+        group: groupId,
+        person_id: personId,
+        membership_role: membershipRole,
+      })
+      .then((r) => r.data),
+  updateMembership: (
+    membershipId: number,
+    payload: Partial<
+      Pick<GroupMembershipEntry, "membership_role" | "is_active">
+    >,
+  ) =>
+    apiClient
+      .patch<GroupMembershipEntry>(
+        `/api/groups/memberships/${membershipId}/`,
+        payload,
+      )
+      .then((r) => r.data),
+  removeMember: (membershipId: number) =>
+    apiClient.delete(`/api/groups/memberships/${membershipId}/`),
 };
 
 // Events
@@ -129,6 +184,13 @@ export const inboxApi = {
       .then((r) => r.data),
   markRead: (id: number) =>
     apiClient.post(`/api/inbox/messages/${id}/read/`).then((r) => r.data),
+  send: (recipientId: number, body: string) =>
+    apiClient
+      .post<InboxMessage>("/api/inbox/messages/", {
+        recipient_id: recipientId,
+        body,
+      })
+      .then((r) => r.data),
 };
 
 // Prayer
@@ -155,6 +217,17 @@ export const prayerApi = {
       .then((r) => r.data),
   pray: (id: number) =>
     apiClient.post(`/api/prayer/requests/${id}/pray/`).then((r) => r.data),
+  moderate: (id: number, status: PrayerRequest["status"], note?: string) =>
+    apiClient
+      .post<PrayerRequest>(`/api/prayer/requests/${id}/moderate/`, {
+        status,
+        note,
+      })
+      .then((r) => r.data),
+  respond: (id: number, body: string) =>
+    apiClient
+      .post<InboxMessage>(`/api/prayer/requests/${id}/respond/`, { body })
+      .then((r) => r.data),
 };
 
 // Rides
@@ -184,13 +257,31 @@ export const formsApi = {
     apiClient
       .get<Paginated<FormAssignment>>("/api/forms/assignments/")
       .then((r) => r.data),
+  assignment: (id: number) =>
+    apiClient
+      .get<FormAssignment>(`/api/forms/assignments/${id}/`)
+      .then((r) => r.data),
+  submit: (assignmentId: number, answers: Record<string, string | boolean>) =>
+    apiClient
+      .post<FormAssignment>(`/api/forms/assignments/${assignmentId}/submit/`, {
+        answers,
+      })
+      .then((r) => r.data),
   definitions: () =>
     apiClient
       .get<Paginated<FormDefinition>>("/api/forms/definitions/")
       .then((r) => r.data),
-  createDefinition: (payload: { title: string; description?: string }) =>
+  createDefinition: (payload: {
+    title: string;
+    description?: string;
+    schema?: FormField[];
+  }) =>
     apiClient
       .post<FormDefinition>("/api/forms/definitions/", payload)
+      .then((r) => r.data),
+  updateDefinitionStatus: (id: number, status: FormDefinition["status"]) =>
+    apiClient
+      .patch<FormDefinition>(`/api/forms/definitions/${id}/`, { status })
       .then((r) => r.data),
   assign: (formId: number, personIds: number[], dueAt?: string) =>
     apiClient
@@ -221,6 +312,19 @@ export const decisionsApi = {
         status,
       })
       .then((r) => r.data),
+  assignFollowUp: (
+    decisionId: number,
+    assigneeId: number,
+    dueAt?: string,
+    notes?: string,
+  ) =>
+    apiClient
+      .post<FollowUp>(`/api/decisions/${decisionId}/follow-up/`, {
+        assignee_id: assigneeId,
+        due_at: dueAt,
+        notes,
+      })
+      .then((r) => r.data),
 };
 
 // Reporting
@@ -228,6 +332,41 @@ export const reportingApi = {
   dashboard: () =>
     apiClient
       .get<DashboardData>("/api/reporting/dashboard/")
+      .then((r) => r.data),
+  attendanceTrend: (weeks = 8) =>
+    apiClient
+      .get<{
+        weeks: number;
+        trend: AttendanceTrendPoint[];
+      }>("/api/reporting/attendance-trend/", { params: { weeks } })
+      .then((r) => r.data),
+  attendanceDrilldown: () =>
+    apiClient
+      .get<Paginated<AttendanceRecord>>("/api/reporting/attendance/")
+      .then((r) => r.data),
+  firstTimeVisitors: () =>
+    apiClient
+      .get<Paginated<BasicPerson>>("/api/reporting/first-time-visitors/")
+      .then((r) => r.data),
+  unassignedYouth: () =>
+    apiClient
+      .get<Paginated<BasicPerson>>("/api/reporting/unassigned-youth/")
+      .then((r) => r.data),
+  decisionsDrilldown: () =>
+    apiClient
+      .get<Paginated<Decision>>("/api/reporting/decisions/")
+      .then((r) => r.data),
+  outstandingFollowUps: () =>
+    apiClient
+      .get<Paginated<FollowUp>>("/api/reporting/outstanding-followups/")
+      .then((r) => r.data),
+  outstandingConsent: () =>
+    apiClient
+      .get<Paginated<FormAssignment>>("/api/reporting/outstanding-consent/")
+      .then((r) => r.data),
+  ridesDrilldown: () =>
+    apiClient
+      .get<Paginated<RideRequest>>("/api/reporting/rides/")
       .then((r) => r.data),
 };
 
@@ -271,9 +410,32 @@ export const navigationApi = {
 
 // Volunteers
 export const volunteersApi = {
-  assignments: () =>
+  assignments: (eventId?: number) =>
     apiClient
-      .get<Paginated<VolunteerAssignment>>("/api/volunteers/assignments/")
+      .get<
+        Paginated<VolunteerAssignment>
+      >("/api/volunteers/assignments/", { params: eventId ? { event: eventId } : undefined })
+      .then((r) => r.data),
+  createAssignment: (payload: {
+    event: number;
+    position: number;
+    person: number;
+    call_start?: string;
+    call_end?: string;
+    notes?: string;
+    add_to_group?: boolean;
+  }) =>
+    apiClient
+      .post<{
+        assignment: VolunteerAssignment;
+        conflicts: VolunteerAssignment[];
+      }>("/api/volunteers/assignments/", payload)
+      .then((r) => r.data),
+  publish: (eventId: number, assignmentIds?: number[]) =>
+    apiClient
+      .post<
+        VolunteerAssignment[]
+      >("/api/volunteers/assignments/publish/", { event: eventId, assignment_ids: assignmentIds })
       .then((r) => r.data),
   positions: (groupId?: number) =>
     apiClient

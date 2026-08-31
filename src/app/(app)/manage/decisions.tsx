@@ -94,6 +94,31 @@ export default function ManageDecisionsScreen() {
     onSuccess: invalidate,
   });
 
+  const [assigningDecisionId, setAssigningDecisionId] = useState<number | null>(
+    null,
+  );
+  const [assigneeQuery, setAssigneeQuery] = useState("");
+  const assigneeResults = useQuery({
+    queryKey: ["manage", "decisions", "assignee-search", assigneeQuery],
+    queryFn: () => usersApi.search(assigneeQuery),
+    enabled: assigneeQuery.length > 0,
+  });
+
+  const assignFollowUpMutation = useMutation({
+    mutationFn: ({
+      decisionId,
+      assigneeId,
+    }: {
+      decisionId: number;
+      assigneeId: number;
+    }) => decisionsApi.assignFollowUp(decisionId, assigneeId),
+    onSuccess: () => {
+      setAssigningDecisionId(null);
+      setAssigneeQuery("");
+      invalidate();
+    },
+  });
+
   return (
     <ScreenContainer>
       <ThemedText type="display">Decisions</ThemedText>
@@ -280,6 +305,73 @@ export default function ManageDecisionsScreen() {
             {decision.decision_type.replace(/_/g, " ")} ·{" "}
             {new Date(decision.occurred_at).toLocaleDateString()}
           </ThemedText>
+
+          <ThemedView style={styles.row}>
+            {decision.follow_up ? (
+              <ThemedText type="small" themeColor="textSecondary">
+                Follow-up: {decision.follow_up.assignee.display_name}
+              </ThemedText>
+            ) : (
+              <ThemedText type="small" themeColor="textSecondary">
+                No follow-up assigned
+              </ThemedText>
+            )}
+            <Pressable
+              onPress={() =>
+                setAssigningDecisionId(
+                  assigningDecisionId === decision.id ? null : decision.id,
+                )
+              }
+            >
+              <ThemedText type="link" themeColor="accent">
+                {assigningDecisionId === decision.id
+                  ? "Close"
+                  : decision.follow_up
+                    ? "Reassign"
+                    : "Assign follow-up"}
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
+
+          {assigningDecisionId === decision.id && (
+            <ThemedView style={styles.assignPanel}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Search for a leader or admin
+              </ThemedText>
+              <TextInput
+                value={assigneeQuery}
+                onChangeText={setAssigneeQuery}
+                placeholder="Search by name"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.input,
+                  {
+                    color: theme.text,
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.border,
+                  },
+                ]}
+              />
+              {assigneeResults.data?.results.map((person) => (
+                <ThemedView key={person.id} style={styles.searchRow}>
+                  <ThemedText type="small">{person.display_name}</ThemedText>
+                  <Pressable
+                    disabled={assignFollowUpMutation.isPending}
+                    onPress={() =>
+                      assignFollowUpMutation.mutate({
+                        decisionId: decision.id,
+                        assigneeId: person.id,
+                      })
+                    }
+                  >
+                    <ThemedText type="link" themeColor="accent">
+                      Assign
+                    </ThemedText>
+                  </Pressable>
+                </ThemedView>
+              ))}
+            </ThemedView>
+          )}
         </Card>
       ))}
     </ScreenContainer>
@@ -308,7 +400,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
   },
-  searchRow: { paddingVertical: Spacing.one },
+  searchRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: Spacing.one,
+  },
+  assignPanel: { marginTop: Spacing.two, gap: Spacing.one },
   selectedPersonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
