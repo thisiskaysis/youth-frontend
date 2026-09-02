@@ -28,7 +28,6 @@ const MENU_ITEMS = [
     hint: "Connect, volunteer & ministry teams",
   },
   { href: "/events", label: "Events", hint: "What's coming up" },
-  { href: "/inbox", label: "Inbox", hint: "Messages & notifications" },
   { href: "/forms", label: "Forms", hint: "Consent & permission forms" },
 ] as const;
 

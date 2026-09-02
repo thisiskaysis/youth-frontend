@@ -1,13 +1,23 @@
+import { useQuery } from "@tanstack/react-query";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useColorScheme } from "react-native";
 
 import { Colors } from "@/constants/theme";
+import { inboxApi } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth-context";
 
 export default function AppTabs() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === "unspecified" ? "light" : scheme];
   const { isLeaderOrAdmin } = useAuth();
+
+  const conversationsQuery = useQuery({
+    queryKey: ["inbox", "conversations"],
+    queryFn: inboxApi.conversations,
+    refetchInterval: 15000,
+  });
+  const unreadCount =
+    conversationsQuery.data?.reduce((sum, c) => sum + c.unread_count, 0) ?? 0;
 
   return (
     <NativeTabs
@@ -33,6 +43,19 @@ export default function AppTabs() {
           }}
           md="person"
         />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="inbox">
+        <NativeTabs.Trigger.Label>Inbox</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "message", selected: "message.fill" }}
+          md="chat"
+        />
+        {unreadCount > 0 && (
+          <NativeTabs.Trigger.Badge>
+            {unreadCount > 9 ? "9+" : String(unreadCount)}
+          </NativeTabs.Trigger.Badge>
+        )}
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="prayer">

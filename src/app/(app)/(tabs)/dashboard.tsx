@@ -2,6 +2,7 @@ import { Link } from "expo-router";
 import { Pressable, StyleSheet } from "react-native";
 
 import { Card } from "@/components/card";
+import { NotificationsButton } from "@/components/notifications-button";
 import { ScreenContainer } from "@/components/screen-container";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -60,7 +61,7 @@ export default function DashboardScreen() {
 
   return (
     <ScreenContainer clearFloatingTabBar>
-      <TopBar />
+      <TopBar right={<NotificationsButton />} />
       <ThemedText type="eyebrow" themeColor="accent">
         {user?.role === "ADMIN" ? "ADMIN" : "LEADER"} DASHBOARD
       </ThemedText>

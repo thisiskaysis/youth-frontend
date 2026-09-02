@@ -2,6 +2,7 @@ import { StyleSheet } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
 import { Card } from "@/components/card";
+import { NotificationsButton } from "@/components/notifications-button";
 import { ScreenContainer } from "@/components/screen-container";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -26,7 +27,7 @@ export default function ProfileScreen() {
 
   return (
     <ScreenContainer clearFloatingTabBar>
-      <TopBar />
+      <TopBar right={<NotificationsButton />} />
       <ThemedText type="eyebrow" themeColor="accent">
         PROFILE
       </ThemedText>

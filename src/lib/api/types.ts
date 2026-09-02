@@ -164,6 +164,12 @@ export type InboxMessage = {
   created_at: string;
 };
 
+export type Conversation = {
+  participant: BasicPerson;
+  last_message: InboxMessage;
+  unread_count: number;
+};
+
 export type RideRequest = {
   id: number;
   person: BasicPerson;

@@ -6,7 +6,7 @@ export default function AppLayout() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="groups" options={{ title: "Groups" }} />
       <Stack.Screen name="events" options={{ title: "Events" }} />
-      <Stack.Screen name="inbox" options={{ title: "Inbox" }} />
+      <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
       <Stack.Screen name="forms" options={{ title: "Forms" }} />
       <Stack.Screen
         name="manage/attendance"

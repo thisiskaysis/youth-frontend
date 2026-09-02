@@ -1,33 +1,34 @@
 import { apiClient } from "../api-client";
 import type {
-    AttendanceLiveStats,
-    AttendanceRecord,
-    AttendanceSession,
-    AttendanceTrendPoint,
-    BasicPerson,
-    ContentItem,
-    CurrentUser,
-    DashboardData,
-    Decision,
-    EventItem,
-    FollowUp,
-    FormAssignment,
-    FormDefinition,
-    FormField,
-    Group,
-    GroupDetail,
-    GroupMembershipEntry,
-    InboxMessage,
-    NavigationItem,
-    NotificationItem,
-    Paginated,
-    PersonDetail,
-    PrayerRequest,
-    RideRequest,
-    SignInResult,
-    SignOutResult,
-    VolunteerAssignment,
-    VolunteerPosition,
+  AttendanceLiveStats,
+  AttendanceRecord,
+  AttendanceSession,
+  AttendanceTrendPoint,
+  BasicPerson,
+  ContentItem,
+  Conversation,
+  CurrentUser,
+  DashboardData,
+  Decision,
+  EventItem,
+  FollowUp,
+  FormAssignment,
+  FormDefinition,
+  FormField,
+  Group,
+  GroupDetail,
+  GroupMembershipEntry,
+  InboxMessage,
+  NavigationItem,
+  NotificationItem,
+  Paginated,
+  PersonDetail,
+  PrayerRequest,
+  RideRequest,
+  SignInResult,
+  SignOutResult,
+  VolunteerAssignment,
+  VolunteerPosition,
 } from "./types";
 
 // Users
@@ -166,7 +167,7 @@ export const attendanceApi = {
       .then((r) => r.data),
 };
 
-// Notifications / Inbox (in-app notification feed)
+// Notifications (in-app feed, separate from Inbox direct messages below)
 export const notificationsApi = {
   list: () =>
     apiClient
@@ -176,11 +177,24 @@ export const notificationsApi = {
     apiClient.post(`/api/notifications/${id}/read/`).then((r) => r.data),
 };
 
-// Direct messages (Leader -> youth)
+// Direct messages (Instagram-style: anyone may reply within a thread,
+// starting a new one is scoped by role - see inboxApi.contacts()).
 export const inboxApi = {
-  list: () =>
+  conversations: () =>
     apiClient
-      .get<Paginated<InboxMessage>>("/api/inbox/messages/")
+      .get<Conversation[]>("/api/inbox/messages/conversations/")
+      .then((r) => r.data),
+  thread: (personId: number) =>
+    apiClient
+      .get<
+        Paginated<InboxMessage>
+      >("/api/inbox/messages/", { params: { with: personId } })
+      .then((r) => r.data),
+  contacts: (query = "") =>
+    apiClient
+      .get<
+        Paginated<BasicPerson>
+      >("/api/inbox/messages/contacts/", { params: query ? { q: query } : undefined })
       .then((r) => r.data),
   markRead: (id: number) =>
     apiClient.post(`/api/inbox/messages/${id}/read/`).then((r) => r.data),

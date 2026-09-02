@@ -2,17 +2,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Link } from "expo-router";
 import {
-    Platform,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AsyncState } from "@/components/async-state";
 import { HamburgerButton } from "@/components/hamburger-menu";
 import { LinkifiedText } from "@/components/linkified-text";
+import { NotificationsButton } from "@/components/notifications-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
@@ -64,17 +65,20 @@ export default function HomeScreen() {
                 themeColor="accent"
                 style={styles.wordmark}
               >
-                YOUTH
+                FAVOR YOUTH
               </ThemedText>
-              <Link href="/profile" asChild>
-                <Pressable>
-                  <ThemedView type="backgroundElement" style={styles.avatar}>
-                    <ThemedText type="smallBold">
-                      {user?.first_name?.[0] ?? "?"}
-                    </ThemedText>
-                  </ThemedView>
-                </Pressable>
-              </Link>
+              <ThemedView style={styles.topRowRight}>
+                <NotificationsButton />
+                <Link href="/profile" asChild>
+                  <Pressable>
+                    <ThemedView type="backgroundElement" style={styles.avatar}>
+                      <ThemedText type="smallBold">
+                        {user?.first_name?.[0] ?? "?"}
+                      </ThemedText>
+                    </ThemedView>
+                  </Pressable>
+                </Link>
+              </ThemedView>
             </ThemedView>
           )}
 
@@ -116,7 +120,7 @@ export default function HomeScreen() {
           )}
 
           <ThemedView style={styles.feedHeader}>
-            <ThemedText type="display">The Feed</ThemedText>
+            <ThemedText type="display">What's On</ThemedText>
           </ThemedView>
 
           <AsyncState
@@ -190,6 +194,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.two,
     paddingBottom: Spacing.three,
+  },
+  topRowRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.three,
   },
   wordmark: { letterSpacing: 2 },
   avatar: {

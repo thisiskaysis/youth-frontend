@@ -10,6 +10,7 @@ import {
 
 import { AsyncState } from "@/components/async-state";
 import { Card } from "@/components/card";
+import { NotificationsButton } from "@/components/notifications-button";
 import { ScreenContainer } from "@/components/screen-container";
 import { StatusBadge } from "@/components/status-badge";
 import { ThemedText } from "@/components/themed-text";
@@ -55,7 +56,7 @@ export default function PrayerScreen() {
 
   return (
     <ScreenContainer clearFloatingTabBar>
-      <TopBar />
+      <TopBar right={<NotificationsButton />} />
       <ThemedText type="eyebrow" themeColor="accent">
         PRAYER
       </ThemedText>
