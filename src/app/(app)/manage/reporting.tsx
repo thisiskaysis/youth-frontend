@@ -17,8 +17,6 @@ const DRILLDOWNS = [
   { slug: "unassigned-youth", label: "Unassigned youth" },
   { slug: "decisions", label: "Decisions" },
   { slug: "outstanding-followups", label: "Outstanding follow-ups" },
-  { slug: "outstanding-consent", label: "Outstanding consent" },
-  { slug: "rides", label: "Rides" },
 ] as const;
 
 export default function ManageReportingScreen() {
@@ -57,11 +55,6 @@ export default function ManageReportingScreen() {
             value={data.decisions.outstanding_follow_ups}
           />
           <Metric label="Prayer requests" value={data.prayer.total} />
-          <Metric label="Ride requests" value={data.rides.total} />
-          <Metric
-            label="Outstanding consent"
-            value={data.outstanding_consent}
-          />
         </ThemedView>
       )}
 

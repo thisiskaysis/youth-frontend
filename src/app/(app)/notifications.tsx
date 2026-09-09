@@ -12,18 +12,16 @@ import type { NotificationItem } from "@/lib/api/types";
 import { formatRelativeTime } from "@/lib/format";
 
 // Where each deep_link_type should take you. Types with no per-item detail
-// route yet (content, events, decisions, prayer, navigation, rides,
+// route yet (content, events, decisions, prayer, navigation,
 // volunteers) land on the screen that lists the item instead.
 const DEEP_LINK_ROUTES: Record<string, (id: string) => string> = {
   attendance_session: (id) => `/manage/attendance/${id}`,
-  form_assignment: (id) => `/forms/${id}`,
   inbox_message: (id) => `/inbox/${id}`,
   content_item: () => "/",
   event: () => "/events",
   follow_up: () => "/manage/decisions",
   navigation_item: () => "/manage/navigation",
   prayer_request: () => "/manage/prayer",
-  ride_request: () => "/manage/rides",
   volunteer_assignment: () => "/manage/volunteers",
 };
 

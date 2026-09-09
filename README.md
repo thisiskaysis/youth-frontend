@@ -39,7 +39,7 @@ npx tsc --noEmit             # typecheck (no test suite yet)
     Protected Routes (`(app)` vs `login`/`register`).
   - `(app)/(tabs)/` - Home (newsfeed), Prayer, Profile, Dashboard
     (leader/admin only).
-  - `(app)/` - Groups, Events, Inbox, Forms (youth-facing, all reachable
+  - `(app)/` - Groups, Events, Inbox (all reachable
     via the hamburger menu, not tabs).
   - `(app)/manage/` - every leader/admin tool, linked from the Dashboard
     grid.
@@ -77,10 +77,6 @@ npx tsc --noEmit             # typecheck (no test suite yet)
   sign-out (native camera or webcam), manual search sign-in/out, a
   **walk-in visitor quick-add** for people with no account yet, live
   on-site stats, close-session with a force-close override.
-- **Forms & consent** (`/manage/forms` + youth-facing `/forms`) - leader
-  builds a form with a question schema (text / textarea / checkbox,
-  required flags), activates it, assigns it to people; assignees see it
-  under "My Forms" and fill in/submit answers.
 - **Decisions & follow-up** (`/manage/decisions`) - record a decision,
   assign an accountable follow-up to a leader/admin, and cycle its
   status (outstanding → in progress → completed).
@@ -88,8 +84,6 @@ npx tsc --noEmit             # typecheck (no test suite yet)
   build a roster (pick an event + position + person, with a
   not-on-the-team safety check), publish it to notify volunteers, then
   accept/decline/cancel assignments.
-- **Rides** (`/manage/rides`) - view requests, cycle status
-  (requested → arranging → confirmed → completed), cancel.
 - **Inbox** - read messages/notifications, mark read, and (leader/admin
   only) **compose** a direct message to any person you're authorised to
   contact.
@@ -98,8 +92,7 @@ npx tsc --noEmit             # typecheck (no test suite yet)
   role changes are admin-only.
 - **Reporting** (`/manage/reporting`) - KPI dashboard plus drill-down
   lists: attendance trend, attendance log, first-time visitors,
-  unassigned youth, decisions, outstanding follow-ups, outstanding
-  consent, rides.
+  unassigned youth, decisions, outstanding follow-ups.
 
 ## Not built yet
 

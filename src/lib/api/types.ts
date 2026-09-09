@@ -171,47 +171,6 @@ export type Conversation = {
   unread_count: number;
 };
 
-export type RideRequest = {
-  id: number;
-  person: BasicPerson;
-  direction: "TO_CHURCH" | "HOME" | "BOTH";
-  area: string;
-  status: "REQUESTED" | "ARRANGING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
-  requested_date: string | null;
-  notes: string;
-};
-
-export type FormField = {
-  key: string;
-  label: string;
-  type: "text" | "textarea" | "checkbox";
-  required?: boolean;
-};
-
-export type FormDefinition = {
-  id: number;
-  title: string;
-  description: string;
-  schema: FormField[];
-  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
-};
-
-export type FormAssignment = {
-  id: number;
-  form: number;
-  form_title: string;
-  form_description: string;
-  form_schema: FormField[];
-  person: BasicPerson;
-  due_at: string | null;
-  status: "OUTSTANDING" | "SUBMITTED";
-  submission: {
-    id: number;
-    answers: Record<string, string | boolean>;
-    created_at: string;
-  } | null;
-};
-
 export type ContentItem = {
   id: number;
   title: string;
@@ -295,6 +254,4 @@ export type DashboardData = {
   group_participation: { unassigned_youth: number };
   decisions: { total: number; outstanding_follow_ups: number };
   prayer: { total: number };
-  rides: { total: number; by_status: { status: string; count: number }[] };
-  outstanding_consent: number;
 };

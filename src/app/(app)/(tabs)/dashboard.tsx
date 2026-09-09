@@ -22,12 +22,6 @@ const LINKS = [
     hint: "Search and manage profiles",
   },
   { href: "/manage/reporting", label: "Reports", hint: "Leadership KPIs" },
-  { href: "/manage/rides", label: "Rides", hint: "Transport requests" },
-  {
-    href: "/manage/forms",
-    label: "Forms & Consent",
-    hint: "Definitions and assignments",
-  },
   {
     href: "/manage/content",
     label: "Newsfeed posts",

@@ -12,9 +12,6 @@ import type {
   Decision,
   EventItem,
   FollowUp,
-  FormAssignment,
-  FormDefinition,
-  FormField,
   Group,
   GroupDetail,
   GroupMembershipEntry,
@@ -24,7 +21,6 @@ import type {
   Paginated,
   PersonDetail,
   PrayerRequest,
-  RideRequest,
   SignInResult,
   SignOutResult,
   VolunteerAssignment,
@@ -256,67 +252,6 @@ export const prayerApi = {
       .then((r) => r.data),
 };
 
-// Rides
-export const ridesApi = {
-  list: () =>
-    apiClient
-      .get<Paginated<RideRequest>>("/api/rides/requests/")
-      .then((r) => r.data),
-  create: (payload: {
-    direction: "TO_CHURCH" | "HOME" | "BOTH";
-    area: string;
-    requested_date?: string;
-    notes?: string;
-  }) =>
-    apiClient
-      .post<RideRequest>("/api/rides/requests/", payload)
-      .then((r) => r.data),
-  updateStatus: (id: number, status: RideRequest["status"]) =>
-    apiClient
-      .patch<RideRequest>(`/api/rides/requests/${id}/`, { status })
-      .then((r) => r.data),
-};
-
-// Forms
-export const formsApi = {
-  myAssignments: () =>
-    apiClient
-      .get<Paginated<FormAssignment>>("/api/forms/assignments/")
-      .then((r) => r.data),
-  assignment: (id: number) =>
-    apiClient
-      .get<FormAssignment>(`/api/forms/assignments/${id}/`)
-      .then((r) => r.data),
-  submit: (assignmentId: number, answers: Record<string, string | boolean>) =>
-    apiClient
-      .post<FormAssignment>(`/api/forms/assignments/${assignmentId}/submit/`, {
-        answers,
-      })
-      .then((r) => r.data),
-  definitions: () =>
-    apiClient
-      .get<Paginated<FormDefinition>>("/api/forms/definitions/")
-      .then((r) => r.data),
-  createDefinition: (payload: {
-    title: string;
-    description?: string;
-    schema?: FormField[];
-  }) =>
-    apiClient
-      .post<FormDefinition>("/api/forms/definitions/", payload)
-      .then((r) => r.data),
-  updateDefinitionStatus: (id: number, status: FormDefinition["status"]) =>
-    apiClient
-      .patch<FormDefinition>(`/api/forms/definitions/${id}/`, { status })
-      .then((r) => r.data),
-  assign: (formId: number, personIds: number[], dueAt?: string) =>
-    apiClient
-      .post<
-        FormAssignment[]
-      >(`/api/forms/definitions/${formId}/assign/`, { person_ids: personIds, due_at: dueAt })
-      .then((r) => r.data),
-};
-
 // Decisions & follow-up
 export const decisionsApi = {
   list: () =>
@@ -385,14 +320,6 @@ export const reportingApi = {
   outstandingFollowUps: () =>
     apiClient
       .get<Paginated<FollowUp>>("/api/reporting/outstanding-followups/")
-      .then((r) => r.data),
-  outstandingConsent: () =>
-    apiClient
-      .get<Paginated<FormAssignment>>("/api/reporting/outstanding-consent/")
-      .then((r) => r.data),
-  ridesDrilldown: () =>
-    apiClient
-      .get<Paginated<RideRequest>>("/api/reporting/rides/")
       .then((r) => r.data),
 };
 

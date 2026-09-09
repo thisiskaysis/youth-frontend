@@ -9,15 +9,12 @@ export default function AppLayout() {
       <Stack.Screen name="groups" options={{ title: "Groups" }} />
       <Stack.Screen name="events" options={{ title: "Events" }} />
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
-      <Stack.Screen name="forms" options={{ title: "Forms" }} />
       <Stack.Screen
         name="manage/attendance"
         options={{ title: "Attendance" }}
       />
       <Stack.Screen name="manage/people" options={{ title: "People" }} />
       <Stack.Screen name="manage/reporting" options={{ title: "Reports" }} />
-      <Stack.Screen name="manage/rides" options={{ title: "Rides" }} />
-      <Stack.Screen name="manage/forms" options={{ title: "Forms" }} />
       <Stack.Screen name="manage/content" options={{ title: "Newsfeed" }} />
       <Stack.Screen
         name="manage/navigation"

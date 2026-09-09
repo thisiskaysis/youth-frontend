@@ -18,8 +18,6 @@ const TITLES: Record<string, string> = {
   "unassigned-youth": "Unassigned youth",
   decisions: "Decisions",
   "outstanding-followups": "Outstanding follow-ups",
-  "outstanding-consent": "Outstanding consent",
-  rides: "Rides",
 };
 
 export default function ReportingDrilldownScreen() {
@@ -55,16 +53,6 @@ export default function ReportingDrilldownScreen() {
     queryFn: reportingApi.outstandingFollowUps,
     enabled: report === "outstanding-followups",
   });
-  const consentQuery = useQuery({
-    queryKey: ["reporting", "outstanding-consent"],
-    queryFn: reportingApi.outstandingConsent,
-    enabled: report === "outstanding-consent",
-  });
-  const ridesQuery = useQuery({
-    queryKey: ["reporting", "rides"],
-    queryFn: reportingApi.ridesDrilldown,
-    enabled: report === "rides",
-  });
 
   const activeQuery =
     {
@@ -74,8 +62,6 @@ export default function ReportingDrilldownScreen() {
       "unassigned-youth": unassignedQuery,
       decisions: decisionsQuery,
       "outstanding-followups": followUpsQuery,
-      "outstanding-consent": consentQuery,
-      rides: ridesQuery,
     }[report] ?? attendanceQuery;
 
   return (
@@ -163,31 +149,6 @@ export default function ReportingDrilldownScreen() {
                 Due {new Date(followUp.due_at).toLocaleDateString()}
               </ThemedText>
             ) : null}
-          </Card>
-        ))}
-
-      {report === "outstanding-consent" &&
-        consentQuery.data?.results.map((assignment) => (
-          <Card key={assignment.id} style={styles.card}>
-            <ThemedText type="smallBold">{assignment.form_title}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {assignment.person.display_name}
-            </ThemedText>
-          </Card>
-        ))}
-
-      {report === "rides" &&
-        ridesQuery.data?.results.map((ride) => (
-          <Card key={ride.id} style={styles.card}>
-            <ThemedView style={styles.row}>
-              <ThemedText type="smallBold">
-                {ride.person.display_name}
-              </ThemedText>
-              <StatusBadge status={ride.status} />
-            </ThemedView>
-            <ThemedText type="small" themeColor="textSecondary">
-              {ride.area}
-            </ThemedText>
           </Card>
         ))}
     </ScreenContainer>

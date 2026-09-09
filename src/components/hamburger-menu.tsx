@@ -28,7 +28,6 @@ const MENU_ITEMS = [
     hint: "Connect, volunteer & ministry teams",
   },
   { href: "/events", label: "Events", hint: "What's coming up" },
-  { href: "/forms", label: "Forms", hint: "Consent & permission forms" },
 ] as const;
 
 export function HamburgerButton() {
