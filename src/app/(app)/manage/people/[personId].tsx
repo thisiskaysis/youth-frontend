@@ -37,8 +37,6 @@ type FormState = {
   guardian_name: string;
   guardian_phone: string;
   guardian_email: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
   status: PersonDetail["status"];
   role: PersonDetail["role"];
 };
@@ -53,8 +51,6 @@ function toFormState(person: PersonDetail): FormState {
     guardian_name: person.guardian_name,
     guardian_phone: person.guardian_phone,
     guardian_email: person.guardian_email,
-    emergency_contact_name: person.emergency_contact_name,
-    emergency_contact_phone: person.emergency_contact_phone,
     status: person.status,
     role: person.role,
   };
@@ -92,8 +88,6 @@ export default function PersonDetailScreen() {
         guardian_name: form.guardian_name,
         guardian_phone: form.guardian_phone,
         guardian_email: form.guardian_email,
-        emergency_contact_name: form.emergency_contact_name,
-        emergency_contact_phone: form.emergency_contact_phone,
         status: form.status,
       };
       if (isAdmin) payload.role = form.role;
@@ -169,14 +163,6 @@ export default function PersonDetailScreen() {
                 label="Guardian email"
                 value={person.guardian_email || "—"}
               />
-              <InfoRow
-                label="Emergency contact"
-                value={person.emergency_contact_name || "—"}
-              />
-              <InfoRow
-                label="Emergency phone"
-                value={person.emergency_contact_phone || "—"}
-              />
             </Card>
           ) : (
             <Card style={styles.card}>
@@ -227,22 +213,6 @@ export default function PersonDetailScreen() {
                 label="Guardian email"
                 value={form.guardian_email}
                 onChangeText={(v) => setForm({ ...form, guardian_email: v })}
-                theme={theme}
-              />
-              <Field
-                label="Emergency contact"
-                value={form.emergency_contact_name}
-                onChangeText={(v) =>
-                  setForm({ ...form, emergency_contact_name: v })
-                }
-                theme={theme}
-              />
-              <Field
-                label="Emergency phone"
-                value={form.emergency_contact_phone}
-                onChangeText={(v) =>
-                  setForm({ ...form, emergency_contact_phone: v })
-                }
                 theme={theme}
               />
 

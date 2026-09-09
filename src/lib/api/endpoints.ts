@@ -55,6 +55,18 @@ export const usersApi = {
     apiClient
       .put<PersonDetail>(`/api/users/${id}/`, payload)
       .then((r) => r.data),
+  uploadProfileImage: (
+    id: number,
+    file: { uri: string; name: string; type: string },
+  ) => {
+    const formData = new FormData();
+    formData.append("image", file as unknown as Blob);
+    return apiClient
+      .post<PersonDetail>(`/api/users/${id}/profile-image/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data);
+  },
 };
 
 // Groups

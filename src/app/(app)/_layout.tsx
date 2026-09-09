@@ -2,7 +2,9 @@ import { Stack } from "expo-router";
 
 export default function AppLayout() {
   return (
-    <Stack>
+    // "minimal": icon-only back button everywhere (iOS defaults to showing
+    // the previous screen's title/route name otherwise, e.g. "(tabs)").
+    <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="groups" options={{ title: "Groups" }} />
       <Stack.Screen name="events" options={{ title: "Events" }} />

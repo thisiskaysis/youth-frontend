@@ -144,7 +144,7 @@ export default function HomeScreen() {
                   style={styles.postAvatar}
                 />
                 <ThemedView style={styles.postHeaderText}>
-                  <ThemedText type="smallBold">Youth Ministry</ThemedText>
+                  <ThemedText type="smallBold">Favor Youth</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
                     {post.publish_at
                       ? new Date(post.publish_at).toLocaleDateString(

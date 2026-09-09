@@ -68,7 +68,7 @@ export default function LoginScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <ThemedText type="eyebrow" themeColor="accent">
-              YOUTH MINISTRY
+              FAVOR YOUTH
             </ThemedText>
             <ThemedText type="display">Welcome back.</ThemedText>
             <ThemedText
@@ -186,7 +186,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, maxWidth: 900, alignSelf: "center" },
   safeArea: { flex: 1 },
   scroll: { padding: Spacing.four, paddingTop: Spacing.six, gap: Spacing.one },
   subtitle: { marginBottom: Spacing.four },

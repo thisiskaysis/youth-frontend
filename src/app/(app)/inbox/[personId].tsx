@@ -20,6 +20,9 @@ import { extractErrorMessage } from "@/lib/api-client";
 import { inboxApi } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth-context";
 
+// Lives at the top level (not nested under (tabs)/inbox) so it shares the
+// (app) stack's history - back returns to wherever it was opened from
+// (inbox list, a notification, etc.) instead of only the inbox list.
 export default function ConversationScreen() {
   const { personId, name } = useLocalSearchParams<{
     personId: string;

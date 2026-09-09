@@ -19,6 +19,9 @@ export type CurrentUser = {
   status: "ACTIVE" | "INACTIVE" | "ARCHIVED";
   date_of_birth: string | null;
   school_year: number | null;
+  guardian_name: string;
+  guardian_phone: string;
+  guardian_email: string;
   is_provisional: boolean;
   qr_token: string;
 };
@@ -46,8 +49,6 @@ export type PersonDetail = {
   guardian_name: string;
   guardian_phone: string;
   guardian_email: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
   is_provisional: boolean;
   date_joined: string;
 };
