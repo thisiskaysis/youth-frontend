@@ -1,125 +1,87 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-    ActivityIndicator,
-    Pressable,
-    StyleSheet,
-    TextInput,
-} from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 import { AsyncState } from "@/components/async-state";
 import { Card } from "@/components/card";
+import { ContentComposer } from "@/components/content-composer";
 import { ScreenContainer } from "@/components/screen-container";
 import { StatusBadge } from "@/components/status-badge";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { extractErrorMessage } from "@/lib/api-client";
 import { contentApi } from "@/lib/api/endpoints";
+import type { ContentItem } from "@/lib/api/types";
+import { useAuth } from "@/lib/auth-context";
+import { confirmAsync } from "@/lib/confirm";
 
 export default function ManageContentScreen() {
   const theme = useTheme();
+  const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["manage", "content"],
-    queryFn: contentApi.list,
+    queryFn: () => contentApi.list({ mine: true }),
   });
 
   const [formOpen, setFormOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
 
-  const createMutation = useMutation({
-    mutationFn: () => contentApi.create({ title, body }),
-    onSuccess: () => {
-      setTitle("");
-      setBody("");
-      setFormOpen(false);
-      setFormError(null);
-      queryClient.invalidateQueries({ queryKey: ["manage", "content"] });
-    },
-    onError: (error) => setFormError(extractErrorMessage(error)),
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingItem(null);
+  };
+
+  const startEditing = (item: ContentItem) => {
+    setEditingItem(item);
+    setFormOpen(true);
+  };
+
+  const invalidateFeeds = () => {
+    queryClient.invalidateQueries({ queryKey: ["manage", "content"] });
+    queryClient.invalidateQueries({ queryKey: ["home", "feed"] });
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => contentApi.remove(id),
+    onSuccess: invalidateFeeds,
   });
 
   const publishMutation = useMutation({
     mutationFn: (id: number) => contentApi.publish(id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["manage", "content"] }),
+    onSuccess: invalidateFeeds,
   });
+
+  const handleDelete = async (id: number) => {
+    const confirmed = await confirmAsync(
+      "Delete post?",
+      "This can't be undone.",
+    );
+    if (confirmed) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   return (
     <ScreenContainer>
       <ThemedText type="display">Newsfeed</ThemedText>
 
       <Pressable
-        onPress={() => setFormOpen((open) => !open)}
+        onPress={() => setFormOpen(true)}
         style={[styles.newButton, { backgroundColor: theme.accent }]}
       >
         <ThemedText type="buttonLabel" themeColor="accentText">
-          {formOpen ? "CANCEL" : "+ NEW POST"}
+          + NEW POST
         </ThemedText>
       </Pressable>
 
-      {formOpen && (
-        <Card>
-          <ThemedText type="small" style={styles.label}>
-            Title
-          </ThemedText>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Camp sign-ups are open"
-            placeholderTextColor={theme.textSecondary}
-            style={[
-              styles.input,
-              {
-                color: theme.text,
-                backgroundColor: theme.backgroundElement,
-                borderColor: theme.border,
-              },
-            ]}
-          />
-          <ThemedText type="small" style={styles.label}>
-            Body
-          </ThemedText>
-          <TextInput
-            value={body}
-            onChangeText={setBody}
-            placeholder="Tell everyone what's happening..."
-            placeholderTextColor={theme.textSecondary}
-            multiline
-            style={[
-              styles.input,
-              styles.multiline,
-              {
-                color: theme.text,
-                backgroundColor: theme.backgroundElement,
-                borderColor: theme.border,
-              },
-            ]}
-          />
-          {formError && (
-            <ThemedText type="small" themeColor="danger">
-              {formError}
-            </ThemedText>
-          )}
-          <Pressable
-            disabled={!title.trim() || !body.trim() || createMutation.isPending}
-            onPress={() => createMutation.mutate()}
-            style={[styles.submitButton, { backgroundColor: theme.accent }]}
-          >
-            {createMutation.isPending ? (
-              <ActivityIndicator color={theme.accentText} />
-            ) : (
-              <ThemedText type="buttonLabel" themeColor="accentText">
-                CREATE (DRAFT)
-              </ThemedText>
-            )}
-          </Pressable>
-        </Card>
-      )}
+      <ContentComposer
+        visible={formOpen}
+        editingItem={editingItem}
+        onDone={closeForm}
+        onCancel={closeForm}
+      />
 
       <AsyncState
         isLoading={query.isLoading}
@@ -130,27 +92,49 @@ export default function ManageContentScreen() {
         emptyMessage="Nothing posted yet."
       />
 
-      {query.data?.results.map((item) => (
-        <Card key={item.id} style={styles.card}>
-          <ThemedText type="smallBold">{item.title}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-            {item.body}
-          </ThemedText>
-          <ThemedView style={styles.cardFooter}>
-            <StatusBadge status={item.status} />
-            {item.status === "DRAFT" && (
-              <Pressable
-                disabled={publishMutation.isPending}
-                onPress={() => publishMutation.mutate(item.id)}
-              >
-                <ThemedText type="link" themeColor="accent">
-                  Publish
-                </ThemedText>
-              </Pressable>
-            )}
-          </ThemedView>
-        </Card>
-      ))}
+      {query.data?.results.map((item) => {
+        const canManage = item.author?.id === user?.id || isAdmin;
+        return (
+          <Card key={item.id} style={styles.card}>
+            <ThemedText type="smallBold">{item.title}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
+              {item.body}
+            </ThemedText>
+            <ThemedView style={styles.cardFooter}>
+              <StatusBadge status={item.status} />
+              <ThemedView style={styles.cardActions}>
+                {item.status === "DRAFT" && (
+                  <Pressable
+                    disabled={publishMutation.isPending}
+                    onPress={() => publishMutation.mutate(item.id)}
+                  >
+                    <ThemedText type="link" themeColor="accent">
+                      Publish
+                    </ThemedText>
+                  </Pressable>
+                )}
+                {canManage && (
+                  <>
+                    <Pressable onPress={() => startEditing(item)}>
+                      <ThemedText type="link" themeColor="accent">
+                        Edit
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      disabled={deleteMutation.isPending}
+                      onPress={() => handleDelete(item.id)}
+                    >
+                      <ThemedText type="link" themeColor="danger">
+                        Delete
+                      </ThemedText>
+                    </Pressable>
+                  </>
+                )}
+              </ThemedView>
+            </ThemedView>
+          </Card>
+        );
+      })}
     </ScreenContainer>
   );
 }
@@ -163,25 +147,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: Spacing.one,
   },
+  cardActions: {
+    flexDirection: "row",
+    gap: Spacing.three,
+    alignItems: "center",
+  },
   newButton: {
     borderRadius: 999,
     paddingVertical: 14,
     alignItems: "center",
     marginVertical: Spacing.two,
   },
-  label: { marginTop: Spacing.two, marginBottom: 4 },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 10,
-    fontSize: 15,
-  },
-  multiline: { minHeight: 90, textAlignVertical: "top" },
-  submitButton: {
-    borderRadius: 999,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: Spacing.three,
-  },
 });
+

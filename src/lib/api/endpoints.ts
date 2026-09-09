@@ -68,6 +68,8 @@ export const usersApi = {
 // Groups
 export const groupsApi = {
   mine: () => apiClient.get<Group[]>("/api/groups/mine/").then((r) => r.data),
+  manageable: () =>
+    apiClient.get<Group[]>("/api/groups/manageable/").then((r) => r.data),
   list: () =>
     apiClient.get<Paginated<Group>>("/api/groups/").then((r) => r.data),
   detail: (id: number) =>
@@ -324,11 +326,61 @@ export const reportingApi = {
 };
 
 // Content (newsfeed)
+export type ContentPostInput = {
+  title: string;
+  body: string;
+  author_display: ContentItem["author_display"];
+  audience_everyone: boolean;
+  audience_groups: number[];
+  image_files?: { uri: string; name: string; type: string }[];
+  remove_image_ids?: number[];
+};
+
+// audience_groups must be omitted entirely (not sent as an empty value) to
+// clear it - DRF's ManyRelatedField resolves an absent multipart key to `[]`
+// on both create (POST) and a full update (PUT), but sending an empty-string
+// entry instead would fail PK validation. audience_everyone is always sent
+// explicitly because DRF's BooleanField treats an absent key in
+// multipart/form input as False ("unchecked checkbox" semantics), not the
+// field's real default.
+function buildContentFormData(payload: ContentPostInput) {
+  const formData = new FormData();
+  formData.append("title", payload.title);
+  formData.append("body", payload.body);
+  formData.append("author_display", payload.author_display);
+  formData.append("audience_everyone", String(payload.audience_everyone));
+  payload.audience_groups.forEach((id) =>
+    formData.append("audience_groups", String(id)),
+  );
+  payload.image_files?.forEach((file) =>
+    formData.append("image_files", file as unknown as Blob),
+  );
+  payload.remove_image_ids?.forEach((id) =>
+    formData.append("remove_image_ids", String(id)),
+  );
+  return formData;
+}
+
 export const contentApi = {
-  list: () =>
-    apiClient.get<Paginated<ContentItem>>("/api/content/").then((r) => r.data),
-  create: (payload: { title: string; body: string; image?: string }) =>
-    apiClient.post<ContentItem>("/api/content/", payload).then((r) => r.data),
+  list: (params?: { mine?: boolean }) =>
+    apiClient
+      .get<Paginated<ContentItem>>("/api/content/", { params })
+      .then((r) => r.data),
+  create: (payload: ContentPostInput) =>
+    apiClient
+      .post<ContentItem>("/api/content/", buildContentFormData(payload), {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data),
+  // Uses PUT (not PATCH) so an omitted/empty audience_groups list is
+  // unambiguous - see buildContentFormData note above.
+  update: (id: number, payload: ContentPostInput) =>
+    apiClient
+      .put<ContentItem>(`/api/content/${id}/`, buildContentFormData(payload), {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data),
+  remove: (id: number) => apiClient.delete(`/api/content/${id}/`),
   publish: (id: number) =>
     apiClient
       .post<ContentItem>(`/api/content/${id}/publish/`)

@@ -175,10 +175,13 @@ export type ContentItem = {
   id: number;
   title: string;
   body: string;
-  image?: string | null;
+  images: { id: number; image: string }[];
   author: BasicPerson | null;
+  author_display: "SELF" | "ORGANIZATION";
   status: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "EXPIRED" | "ARCHIVED";
   publish_at: string | null;
+  audience_everyone: boolean;
+  audience_groups: number[];
 };
 
 export type NavigationItem = {

@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { Image } from "expo-image";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
+import { useState } from "react";
 import {
   Platform,
   Pressable,
@@ -12,24 +12,29 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AsyncState } from "@/components/async-state";
 import { Avatar } from "@/components/avatar";
+import { ContentComposer } from "@/components/content-composer";
 import { HamburgerButton } from "@/components/hamburger-menu";
 import { LinkifiedText } from "@/components/linkified-text";
 import { NotificationsButton } from "@/components/notifications-button";
+import { PostImageGallery } from "@/components/post-image-gallery";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { contentApi, eventsApi } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth-context";
+import { confirmAsync } from "@/lib/confirm";
 import { initialFor } from "@/lib/format";
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { user } = useAuth();
+  const { user, isAdmin, isLeaderOrAdmin } = useAuth();
+  const queryClient = useQueryClient();
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const feedQuery = useQuery({
     queryKey: ["home", "feed"],
-    queryFn: contentApi.list,
+    queryFn: () => contentApi.list(),
   });
   const eventsQuery = useQuery({
     queryKey: ["home", "events"],
@@ -43,6 +48,24 @@ export default function HomeScreen() {
   const refresh = () => {
     feedQuery.refetch();
     eventsQuery.refetch();
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => contentApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["home", "feed"] });
+      queryClient.invalidateQueries({ queryKey: ["manage", "content"] });
+    },
+  });
+
+  const handleDelete = async (id: number) => {
+    const confirmed = await confirmAsync(
+      "Delete post?",
+      "This can't be undone.",
+    );
+    if (confirmed) {
+      deleteMutation.mutate(id);
+    }
   };
 
   return (
@@ -125,6 +148,29 @@ export default function HomeScreen() {
             <ThemedText type="display">What's On</ThemedText>
           </ThemedView>
 
+          {isLeaderOrAdmin && (
+            <ThemedView style={styles.composerWrap}>
+              <Pressable onPress={() => setComposerOpen(true)}>
+                <ThemedView type="backgroundElement" style={styles.composerPrompt}>
+                  <Avatar
+                    uri={user?.profile_image}
+                    label={user?.first_name?.[0]?.toUpperCase() ?? "?"}
+                    size={36}
+                  />
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Share something with the group...
+                  </ThemedText>
+                </ThemedView>
+              </Pressable>
+              <ContentComposer
+                visible={composerOpen}
+                allowImmediatePublish
+                onDone={() => setComposerOpen(false)}
+                onCancel={() => setComposerOpen(false)}
+              />
+            </ThemedView>
+          )}
+
           <AsyncState
             isLoading={feedQuery.isLoading}
             isError={feedQuery.isError}
@@ -134,49 +180,69 @@ export default function HomeScreen() {
             emptyMessage="Nothing posted yet - check back soon!"
           />
 
-          {posts.map((post) => (
-            <ThemedView
-              key={post.id}
-              type="backgroundElement"
-              style={styles.postCard}
-            >
-              <ThemedView style={styles.postHeader}>
-                <Avatar
-                  uri={post.author?.profile_image}
-                  label={post.author ? initialFor(post.author.display_name) : "F"}
-                  size={36}
-                />
-                <ThemedView style={styles.postHeaderText}>
-                  <ThemedText type="smallBold">
-                    {post.author?.display_name ?? "Favor Youth"}
+          {posts.map((post) => {
+            const isOrganization = post.author_display === "ORGANIZATION";
+            const canManage = post.author?.id === user?.id || isAdmin;
+            return (
+              <ThemedView
+                key={post.id}
+                type="backgroundElement"
+                style={styles.postCard}
+              >
+                <ThemedView style={styles.postHeader}>
+                  <Avatar
+                    uri={isOrganization ? null : post.author?.profile_image}
+                    label={
+                      isOrganization || !post.author
+                        ? "F"
+                        : initialFor(post.author.display_name)
+                    }
+                    size={36}
+                  />
+                  <ThemedView style={styles.postHeaderText}>
+                    <ThemedText type="smallBold">
+                      {isOrganization
+                        ? "Favor Youth"
+                        : (post.author?.display_name ?? "Favor Youth")}
+                    </ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {post.publish_at
+                        ? new Date(post.publish_at).toLocaleDateString(
+                            undefined,
+                            { month: "short", day: "numeric" },
+                          )
+                        : "Just now"}
+                    </ThemedText>
+                  </ThemedView>
+                  {canManage && (
+                    <ThemedView style={styles.postActions}>
+                      <Link href="/manage/content" asChild>
+                        <Pressable>
+                          <ThemedText type="link" themeColor="accent">
+                            Edit
+                          </ThemedText>
+                        </Pressable>
+                      </Link>
+                      <Pressable onPress={() => handleDelete(post.id)}>
+                        <ThemedText type="link" themeColor="danger">
+                          Delete
+                        </ThemedText>
+                      </Pressable>
+                    </ThemedView>
+                  )}
+                </ThemedView>
+
+                <PostImageGallery images={post.images} />
+
+                <ThemedView style={styles.postBody}>
+                  <ThemedText type="smallBold" style={styles.postTitle}>
+                    {post.title}
                   </ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {post.publish_at
-                      ? new Date(post.publish_at).toLocaleDateString(
-                          undefined,
-                          { month: "short", day: "numeric" },
-                        )
-                      : "Just now"}
-                  </ThemedText>
+                  <LinkifiedText text={post.body} style={styles.postText} />
                 </ThemedView>
               </ThemedView>
-
-              {post.image ? (
-                <Image
-                  source={{ uri: post.image }}
-                  style={styles.postImage}
-                  contentFit="cover"
-                />
-              ) : null}
-
-              <ThemedView style={styles.postBody}>
-                <ThemedText type="smallBold" style={styles.postTitle}>
-                  {post.title}
-                </ThemedText>
-                <LinkifiedText text={post.body} style={styles.postText} />
-              </ThemedView>
-            </ThemedView>
-          ))}
+            );
+          })}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -226,6 +292,17 @@ const styles = StyleSheet.create({
     marginTop: Spacing.three,
     marginBottom: Spacing.one,
   },
+  composerWrap: {
+    paddingHorizontal: Spacing.three,
+    marginBottom: Spacing.two,
+  },
+  composerPrompt: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.two,
+    borderRadius: 20,
+    padding: Spacing.three,
+  },
   postCard: {
     marginHorizontal: Spacing.three,
     marginTop: Spacing.three,
@@ -239,8 +316,13 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   postHeaderText: { flex: 1 },
-  postImage: { width: "100%", aspectRatio: 1 },
+  postActions: {
+    flexDirection: "row",
+    gap: Spacing.two,
+    alignItems: "center",
+  },
   postBody: { padding: Spacing.three, paddingTop: Spacing.two, gap: 4 },
   postTitle: { fontSize: 16 },
   postText: { lineHeight: 22 },
 });
+
