@@ -1,5 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import { SymbolView } from "expo-symbols";
 import QRCode from "react-native-qrcode-svg";
 import { useState } from "react";
 import DateTimePicker, {
@@ -66,6 +68,8 @@ export default function ProfileScreen() {
   const [form, setForm] = useState<ProfileForm | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const updateMutation = useMutation({
     mutationFn: async () => {
@@ -126,23 +130,83 @@ export default function ProfileScreen() {
     setEditing(false);
   };
 
+  const pickAndUploadPhoto = async () => {
+    setPhotoError(null);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setPhotoError("Photo library access is required to change your photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    setUploadingPhoto(true);
+    try {
+      await usersApi.uploadProfileImage(user.id, {
+        uri: asset.uri,
+        name: asset.fileName ?? "profile.jpg",
+        type: asset.mimeType ?? "image/jpeg",
+      });
+      await refreshUser();
+    } catch (err) {
+      setPhotoError(extractErrorMessage(err));
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   return (
     <ScreenContainer clearFloatingTabBar>
       <TopBar right={<NotificationsButton />} />
-      <ThemedView type="backgroundElement" style={styles.avatar}>
-        {user.profile_image ? (
-          <Image
-            source={{ uri: user.profile_image }}
-            contentFit="cover"
-            style={styles.avatarImage}
-          />
+      <Pressable
+        onPress={pickAndUploadPhoto}
+        disabled={uploadingPhoto}
+        style={styles.avatarWrap}
+      >
+        <ThemedView type="backgroundElement" style={styles.avatar}>
+          {user.profile_image ? (
+            <Image
+              source={{ uri: user.profile_image }}
+              contentFit="cover"
+              style={styles.avatarImage}
+            />
+          ) : (
+            <ThemedText type="title" themeColor="accentText">
+              {user.first_name[0]}
+              {user.last_name[0]}
+            </ThemedText>
+          )}
+        </ThemedView>
+        {uploadingPhoto ? (
+          <ThemedView style={styles.avatarOverlay}>
+            <ActivityIndicator color="#fff" />
+          </ThemedView>
         ) : (
-          <ThemedText type="title" themeColor="accentText">
-            {user.first_name[0]}
-            {user.last_name[0]}
-          </ThemedText>
+          <ThemedView
+            style={[
+              styles.avatarBadge,
+              { backgroundColor: theme.accent, borderColor: theme.background },
+            ]}
+          >
+            <SymbolView
+              name={{ ios: "camera.fill", android: "photo_camera", web: "photo_camera" }}
+              size={16}
+              tintColor={theme.accentText}
+            />
+          </ThemedView>
         )}
-      </ThemedView>
+      </Pressable>
+      {photoError && (
+        <ThemedText type="small" themeColor="danger" style={styles.avatarError}>
+          {photoError}
+        </ThemedText>
+      )}
       <ThemedText type="eyebrow" themeColor="accent">
         PROFILE
       </ThemedText>
@@ -404,17 +468,44 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
+  avatarWrap: {
+    alignSelf: "center",
+    width: 196,
+    height: 196,
+    marginBottom: Spacing.three,
+  },
   avatar: {
     alignItems: "center",
     justifyContent: "center",
     width: 196,
     height: 196,
     borderRadius: 98,
-    alignSelf: "center",
     overflow: "hidden",
-    marginBottom: Spacing.three,
   },
   avatarImage: { width: "100%", height: "100%" },
+  avatarBadge: {
+    position: "absolute",
+    right: 4,
+    bottom: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  avatarOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 98,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  avatarError: { textAlign: "center", marginBottom: Spacing.two },
   detailsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

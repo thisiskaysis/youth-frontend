@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, TextInput } from "react-native";
 
 import { AsyncState } from "@/components/async-state";
+import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { NotificationsButton } from "@/components/notifications-button";
 import { ScreenContainer } from "@/components/screen-container";
@@ -14,11 +15,7 @@ import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { inboxApi } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth-context";
-import { formatRelativeTime } from "@/lib/format";
-
-function initialFor(name: string) {
-  return name.trim().charAt(0).toUpperCase() || "?";
-}
+import { formatRelativeTime, initialFor } from "@/lib/format";
 
 export default function InboxScreen() {
   const theme = useTheme();
@@ -38,12 +35,12 @@ export default function InboxScreen() {
     enabled: composeOpen && contactQuery.length > 0,
   });
 
-  const openThread = (personId: number, name: string) => {
+  const openThread = (personId: number, name: string, image?: string | null) => {
     setComposeOpen(false);
     setContactQuery("");
     router.push({
       pathname: "/inbox/[personId]",
-      params: { personId: String(personId), name },
+      params: { personId: String(personId), name, ...(image ? { image } : {}) },
     });
   };
 
@@ -96,9 +93,16 @@ export default function InboxScreen() {
           {contactsQuery.data?.results.map((person) => (
             <Pressable
               key={person.id}
-              onPress={() => openThread(person.id, person.display_name)}
+              onPress={() =>
+                openThread(person.id, person.display_name, person.profile_image)
+              }
               style={styles.searchRow}
             >
+              <Avatar
+                uri={person.profile_image}
+                label={initialFor(person.display_name)}
+                size={32}
+              />
               <ThemedText type="small">{person.display_name}</ThemedText>
             </Pressable>
           ))}
@@ -122,16 +126,17 @@ export default function InboxScreen() {
               openThread(
                 conversation.participant.id,
                 conversation.participant.display_name,
+                conversation.participant.profile_image,
               )
             }
           >
             <Card style={styles.card}>
               <ThemedView style={styles.row}>
-                <ThemedView type="backgroundElement" style={styles.avatar}>
-                  <ThemedText type="smallBold">
-                    {initialFor(conversation.participant.display_name)}
-                  </ThemedText>
-                </ThemedView>
+                <Avatar
+                  uri={conversation.participant.profile_image}
+                  label={initialFor(conversation.participant.display_name)}
+                  size={44}
+                />
                 <ThemedView style={styles.rowText}>
                   <ThemedView style={styles.rowHeader}>
                     <ThemedText type="smallBold" numberOfLines={1}>
@@ -185,16 +190,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
   },
-  searchRow: { paddingVertical: Spacing.one },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.two,
+    paddingVertical: Spacing.one,
+  },
   emptyHint: { paddingVertical: Spacing.one },
   row: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   rowText: { flex: 1, gap: 2 },
   rowHeader: {
     flexDirection: "row",

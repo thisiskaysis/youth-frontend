@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AsyncState } from "@/components/async-state";
+import { Avatar } from "@/components/avatar";
 import { HamburgerButton } from "@/components/hamburger-menu";
 import { LinkifiedText } from "@/components/linkified-text";
 import { NotificationsButton } from "@/components/notifications-button";
@@ -20,6 +21,7 @@ import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { contentApi, eventsApi } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth-context";
+import { initialFor } from "@/lib/format";
 
 export default function HomeScreen() {
   const theme = useTheme();
@@ -71,11 +73,11 @@ export default function HomeScreen() {
                 <NotificationsButton />
                 <Link href="/profile" asChild>
                   <Pressable>
-                    <ThemedView type="backgroundElement" style={styles.avatar}>
-                      <ThemedText type="smallBold">
-                        {user?.first_name?.[0] ?? "?"}
-                      </ThemedText>
-                    </ThemedView>
+                    <Avatar
+                      uri={user?.profile_image}
+                      label={user?.first_name?.[0]?.toUpperCase() ?? "?"}
+                      size={32}
+                    />
                   </Pressable>
                 </Link>
               </ThemedView>
@@ -139,12 +141,15 @@ export default function HomeScreen() {
               style={styles.postCard}
             >
               <ThemedView style={styles.postHeader}>
-                <ThemedView
-                  type="backgroundSelected"
-                  style={styles.postAvatar}
+                <Avatar
+                  uri={post.author?.profile_image}
+                  label={post.author ? initialFor(post.author.display_name) : "F"}
+                  size={36}
                 />
                 <ThemedView style={styles.postHeaderText}>
-                  <ThemedText type="smallBold">Favor Youth</ThemedText>
+                  <ThemedText type="smallBold">
+                    {post.author?.display_name ?? "Favor Youth"}
+                  </ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
                     {post.publish_at
                       ? new Date(post.publish_at).toLocaleDateString(
@@ -201,13 +206,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   wordmark: { letterSpacing: 2 },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   storiesRow: {
     paddingHorizontal: Spacing.four,
     gap: Spacing.two,
@@ -240,7 +238,6 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     padding: Spacing.three,
   },
-  postAvatar: { width: 36, height: 36, borderRadius: 18 },
   postHeaderText: { flex: 1 },
   postImage: { width: "100%", aspectRatio: 1 },
   postBody: { padding: Spacing.three, paddingTop: Spacing.two, gap: 4 },

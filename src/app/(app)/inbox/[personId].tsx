@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import {
     KeyboardAvoidingView,
     Platform,
@@ -8,10 +8,12 @@ import {
     ScrollView,
     StyleSheet,
     TextInput,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AsyncState } from "@/components/async-state";
+import { Avatar } from "@/components/avatar";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
@@ -19,14 +21,33 @@ import { useTheme } from "@/hooks/use-theme";
 import { extractErrorMessage } from "@/lib/api-client";
 import { inboxApi } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/auth-context";
+import { formatDayLabel, initialFor } from "@/lib/format";
+
+function ThreadHeaderTitle({
+  name,
+  imageUri,
+}: {
+  name: string;
+  imageUri?: string | null;
+}) {
+  return (
+    <View style={styles.headerTitleRow}>
+      <Avatar uri={imageUri} label={initialFor(name)} size={28} textType="small" />
+      <ThemedText type="smallBold" numberOfLines={1} style={styles.headerTitleText}>
+        {name}
+      </ThemedText>
+    </View>
+  );
+}
 
 // Lives at the top level (not nested under (tabs)/inbox) so it shares the
 // (app) stack's history - back returns to wherever it was opened from
 // (inbox list, a notification, etc.) instead of only the inbox list.
 export default function ConversationScreen() {
-  const { personId, name } = useLocalSearchParams<{
+  const { personId, name, image } = useLocalSearchParams<{
     personId: string;
     name?: string;
+    image?: string;
   }>();
   const otherId = Number(personId);
   const theme = useTheme();
@@ -59,10 +80,17 @@ export default function ConversationScreen() {
     messages.find((message) => message.sender.id !== user?.id)?.sender ??
     messages.find((message) => message.recipient.id !== user?.id)?.recipient;
   const title = name ?? otherParticipant?.display_name ?? "Messages";
+  const avatarUri = otherParticipant?.profile_image ?? image ?? null;
 
   return (
     <ThemedView style={styles.fill}>
-      <Stack.Screen options={{ title }} />
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <ThreadHeaderTitle name={title} imageUri={avatarUri} />
+          ),
+        }}
+      />
       <SafeAreaView style={styles.fill} edges={["bottom"]}>
         <KeyboardAvoidingView
           style={styles.fill}
@@ -85,33 +113,63 @@ export default function ConversationScreen() {
               isEmpty={messages.length === 0}
               emptyMessage="No messages yet - say hi!"
             />
-            {messages.map((message) => {
+            {messages.map((message, index) => {
               const isMine = message.sender.id === user?.id;
+              const previous = messages[index - 1];
+              const showDateSeparator =
+                !previous ||
+                formatDayLabel(previous.created_at) !==
+                  formatDayLabel(message.created_at);
               return (
-                <ThemedView
-                  key={message.id}
-                  style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}
-                >
+                <Fragment key={message.id}>
+                  {showDateSeparator && (
+                    <ThemedView style={styles.dateSeparator}>
+                      <ThemedView
+                        type="backgroundElement"
+                        style={styles.dateSeparatorPill}
+                      >
+                        <ThemedText type="small" themeColor="textSecondary">
+                          {formatDayLabel(message.created_at)}
+                        </ThemedText>
+                      </ThemedView>
+                    </ThemedView>
+                  )}
                   <ThemedView
-                    type={isMine ? "backgroundSelected" : "backgroundElement"}
-                    style={[styles.bubble, isMine && styles.bubbleMine]}
+                    style={[styles.messageRow, isMine && styles.messageRowMine]}
                   >
-                    <ThemedText type="small">{message.body}</ThemedText>
-                  </ThemedView>
-                  <ThemedText
-                    type="small"
-                    themeColor="textSecondary"
-                    style={styles.timestamp}
-                  >
-                    {new Date(message.created_at).toLocaleTimeString(
-                      undefined,
-                      {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      },
+                    {!isMine && (
+                      <Avatar
+                        uri={message.sender.profile_image}
+                        label={initialFor(message.sender.display_name)}
+                        size={28}
+                        textType="small"
+                      />
                     )}
-                  </ThemedText>
-                </ThemedView>
+                    <ThemedView
+                      style={[styles.bubbleRow, isMine && styles.bubbleRowMine]}
+                    >
+                      <ThemedView
+                        type={isMine ? "backgroundSelected" : "backgroundElement"}
+                        style={[styles.bubble, isMine && styles.bubbleMine]}
+                      >
+                        <ThemedText type="small">{message.body}</ThemedText>
+                      </ThemedView>
+                      <ThemedText
+                        type="small"
+                        themeColor="textSecondary"
+                        style={[styles.timestamp, isMine && styles.timestampMine]}
+                      >
+                        {new Date(message.created_at).toLocaleTimeString(
+                          undefined,
+                          {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </ThemedText>
+                    </ThemedView>
+                  </ThemedView>
+                </Fragment>
               );
             })}
           </ScrollView>
@@ -162,26 +220,50 @@ export default function ConversationScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.one,
+  },
+  headerTitleText: { maxWidth: 180 },
   messages: {
     padding: Spacing.four,
     gap: Spacing.one,
     flexGrow: 1,
     justifyContent: "flex-end",
   },
-  bubbleRow: {
-    maxWidth: "80%",
+  messageRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.one,
+    maxWidth: "90%",
     marginBottom: Spacing.two,
     alignSelf: "flex-start",
+  },
+  messageRowMine: { alignSelf: "flex-end" },
+  dateSeparator: {
+    alignItems: "center",
+    marginBottom: Spacing.two,
+  },
+  dateSeparatorPill: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  bubbleRow: {
     alignItems: "flex-start",
   },
-  bubbleRowMine: { alignSelf: "flex-end", alignItems: "flex-end" },
+  bubbleRowMine: { alignItems: "flex-end" },
   bubble: {
     borderRadius: 16,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
   bubbleMine: { borderTopRightRadius: 4 },
-  timestamp: { marginTop: 2, fontSize: 11 },
+  // Insets match the bubble's own paddingHorizontal so the timestamp lines
+  // up with the message text inside the bubble, not the bubble's outer edge.
+  timestamp: { marginTop: 2, marginLeft: Spacing.three, fontSize: 11 },
+  timestampMine: { marginLeft: 0, marginRight: Spacing.three },
   error: { paddingHorizontal: Spacing.four },
   inputRow: {
     flexDirection: "row",

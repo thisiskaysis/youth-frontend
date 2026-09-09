@@ -217,6 +217,7 @@ export type ContentItem = {
   title: string;
   body: string;
   image?: string | null;
+  author: BasicPerson | null;
   status: "DRAFT" | "SCHEDULED" | "PUBLISHED" | "EXPIRED" | "ARCHIVED";
   publish_at: string | null;
 };
