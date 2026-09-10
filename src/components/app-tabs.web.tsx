@@ -37,8 +37,8 @@ export default function AppTabs() {
           <TabTrigger name="index" href="/" asChild>
             <TabButton>Home</TabButton>
           </TabTrigger>
-          <TabTrigger name="prayer" href="/prayer" asChild>
-            <TabButton>Prayer</TabButton>
+          <TabTrigger name="qr" href="/qr" asChild>
+            <TabButton>QR Code</TabButton>
           </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
             <TabButton>Profile</TabButton>

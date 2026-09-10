@@ -10,12 +10,10 @@ import {
 
 import { AsyncState } from "@/components/async-state";
 import { Card } from "@/components/card";
-import { NotificationsButton } from "@/components/notifications-button";
 import { ScreenContainer } from "@/components/screen-container";
 import { StatusBadge } from "@/components/status-badge";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { TopBar } from "@/components/top-bar";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { extractErrorMessage } from "@/lib/api-client";
@@ -55,8 +53,7 @@ export default function PrayerScreen() {
   });
 
   return (
-    <ScreenContainer clearFloatingTabBar>
-      <TopBar right={<NotificationsButton />} />
+    <ScreenContainer>
       <ThemedText type="eyebrow" themeColor="accent">
         PRAYER
       </ThemedText>

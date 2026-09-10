@@ -28,6 +28,7 @@ const MENU_ITEMS = [
     hint: "Connect, volunteer & ministry teams",
   },
   { href: "/events", label: "Events", hint: "What's coming up" },
+  { href: "/prayer", label: "Prayer", hint: "Share requests & pray for others" },
 ] as const;
 
 export function HamburgerButton() {
@@ -217,6 +218,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: PANEL_WIDTH,
     borderRightWidth: StyleSheet.hairlineWidth,
+    paddingVertical: Spacing.four,
   },
   panelSafeArea: { flex: 1, padding: Spacing.four },
   panelTitle: { marginBottom: Spacing.three },

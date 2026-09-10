@@ -6,8 +6,13 @@ export default function AppLayout() {
     // the previous screen's title/route name otherwise, e.g. "(tabs)").
     <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="profile-details"
+        options={{ title: "Profile Details" }}
+      />
       <Stack.Screen name="groups" options={{ title: "Groups" }} />
       <Stack.Screen name="events" options={{ title: "Events" }} />
+      <Stack.Screen name="prayer" options={{ title: "Prayer" }} />
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
       <Stack.Screen
         name="manage/attendance"

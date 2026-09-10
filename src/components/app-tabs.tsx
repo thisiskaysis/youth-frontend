@@ -58,12 +58,9 @@ export default function AppTabs() {
         )}
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="prayer">
-        <NativeTabs.Trigger.Label>Prayer</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "hands.sparkles", selected: "hands.sparkles.fill" }}
-          md="volunteer_activism"
-        />
+      <NativeTabs.Trigger name="qr">
+        <NativeTabs.Trigger.Label>Check In</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="qrcode" md="qr_code" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="dashboard" hidden={!isLeaderOrAdmin}>
